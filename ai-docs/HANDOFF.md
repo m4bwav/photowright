@@ -1,6 +1,6 @@
 # HANDOFF: photowright
 
-Status: Step F part 1 done (phw 0.5.0, 2026-11-17): plugin manifest, hub skill `photowright` (no siblings), evergreen companions, eval suite (12/15 cases with the skill; decoys 4/4; action 3/3 with, 1/3 baseline), README with banner, SECURITY.md, merged to main. Not tagged, not public, no wiki. Next: Mark's Step E answers in set `photowright-stepE-jobs-2026-11-17`, then evergreen-worth, wiki, public repo plus release plus install. Repo private m4bwav/photowright (main).
+Status: 0.5.0 released and public (2026-11-17), installed. Step E done (all jobs kept). Next: wiki, worth follow-ups, ComfyUI rung 3 routes from references/comfyui-nodes.md, Szeliski proposals, bridge last. Repo public m4bwav/photowright (main).
 
 Continue prompt: [plans/photowright-continue-prompt.md](plans/photowright-continue-prompt.md)
 
@@ -16,11 +16,13 @@ Continue prompt: [plans/photowright-continue-prompt.md](plans/photowright-contin
 
 ## Waiting on Mark
 
-- OPEN 2026-11-17: askwright set `photowright-stepE-jobs-2026-11-17`, folder [ask/photowright-stepE-jobs-2026-11-17](../ask/photowright-stepE-jobs-2026-11-17) (`ask.py read` it). Six questions: keep/redo for the retouch, card composite, sprite batch, Electrum pixel trace, sun emblem DXF, and VTracer vs own tracer for the emblem. Jobs live outside the repo in D:/m4bwa/Claude/Projects/Ai/photowright-jobs/ (1-retouch, 2-composite, 3-batch, 4-trace; review/ holds the before/after sheets). artwright-judge blind pairs skipped: only one pair existed and it is on the page as a compare question.
+- ANSWERED and closed 2026-11-17 (all keep; tracer same): askwright set `photowright-stepE-jobs-2026-11-17`, folder [ask/photowright-stepE-jobs-2026-11-17](../ask/photowright-stepE-jobs-2026-11-17) (`ask.py read` it). Six questions: keep/redo for the retouch, card composite, sprite batch, Electrum pixel trace, sun emblem DXF, and VTracer vs own tracer for the emblem. Jobs live outside the repo in D:/m4bwa/Claude/Projects/Ai/photowright-jobs/ (1-retouch, 2-composite, 3-batch, 4-trace; review/ holds the before/after sheets). artwright-judge blind pairs skipped: only one pair existed and it is on the page as a compare question.
 
 - ANSWERED and closed 2026-11-17 (see log): askwright set `photowright-setup-2026-11-17`: folder [ask/photowright-setup-2026-11-17](../ask/photowright-setup-2026-11-17) (`ask.py read` it). Asks for the name, public timing, the Photoshop bridge and version, the first-job projects, and installing Potrace/Inkscape/GIMP. Carry on with the guesses in [plans/design.md](plans/design.md) section 8.
 
 ## Next
+
+0. Wiki (wikiwright) for 0.5.0. Worth follow-ups (log 2026-11-17). Wire rung 3 ComfyUI routes per references/comfyui-nodes.md: cutout via installed BiRefNet, fill/remove via Qwen-Image-Edit-2511, upscale via SeedVR2; propose installs (Florence2+SAM2, inpaint-nodes LaMa, ToSVG) on an askwright page since installing third-party node packs waits on Mark.
 
 1. Step G done 2026-11-17: Szeliski read and distilled (ai-docs/notes/szeliski.md). Next: build its 10 proposals, each test first (adjust luminance curves and equalise, bilateral denoise, warp prefilter, pyramid composite, median stack, fill/stitch doc lines, upscale invented flag). The rest of ai-docs/notes/books.md are leads.
 2. Step E: first real jobs, one per kind from Mark's five projects (Arvum sprites, SpaceDeckBuilder2 cards, polywright print/laser, AI film stills, markdavidrogers.com images): a photo retouch, a layered composite, a batch over a folder (phw batch, dry run first), a trace to a clean vector (phw trace + vcheck + export, DXF for laser). Each goes through the bars, then to Mark on an askwright page. Whatever fails becomes a test.
