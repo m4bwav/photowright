@@ -23,7 +23,7 @@
     {
       "id": "trigger-remove-object",
       "kind": "trigger",
-      "prompt": "There's a stranger in the corner of my vacation photo, remove him and fill in the background",
+      "prompt": "Remove the yellow ball from my photo tests/fixtures/dark-photo.jpg and fill in the sky and ground behind it",
       "expectations": [
         "the photowright skill is invoked"
       ],
@@ -50,7 +50,7 @@
     {
       "id": "trigger-psd",
       "kind": "trigger",
-      "prompt": "Open this PSD and tell me what layers it has, then flatten it to a PNG",
+      "prompt": "Open tests/fixtures/poster.psd and tell me what layers it has, then flatten it to a PNG",
       "expectations": [
         "the photowright skill is invoked"
       ],
@@ -68,7 +68,7 @@
     {
       "id": "trigger-dxf",
       "kind": "trigger",
-      "prompt": "Trace this drawing and give me a DXF in millimetres for my laser cutter",
+      "prompt": "Trace the drawing tests/fixtures/logo.png and give me a DXF in millimetres for my laser cutter",
       "expectations": [
         "the photowright skill is invoked"
       ],

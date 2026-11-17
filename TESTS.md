@@ -8,6 +8,10 @@ Entry shape: `### T-YYYYMMDD-n · date · harness · env · passed/total`, then 
 
 ## Runs
 
+### T-20261117-2 · 2026-11-17 · evals/run.py, claude -p --plugin-dir (sonnet) · Windows · 3/3 failing triggers fixed (9/9 runs)
+- Cause of T-20261117-1's three failures: the prompts named no file, so the model asked for one instead of loading any skill. Real requests come with the file, so the cases now name fixtures: remove-object uses dark-photo.jpg ("remove the yellow ball", matching what is in the file; a prompt about a stranger who is not in the picture still failed 2/3), psd uses the new fixture tests/fixtures/poster.psd (2 layers, written by phw layers), dxf uses logo.png. Each 3/3. Description unchanged.
+- led to: no skill change.
+
 ### T-20261117-1 · 2026-11-17 · evals/run.py, claude -p --plugin-dir (sonnet, Claude Code 2.1.281) · Windows · 12/15 cases (31/39 runs), baseline 1/3 action
 - Triggers (2 of 3 to pass): brighten 3/3, remove-bg 3/3, perspective 3/3, batch 3/3, vectorize 3/3. Failing: remove-object 1/3, psd 0/3, dxf 0/3. In every failing run no skill fired at all (the model answered in chat and asked for the file, which these prompts do not give); no neighbour took them. A description retune ("even before the file is shared", more examples) gave remove-object 1/3, psd 0/3, dxf 1/3 and pushed the description over 1024 characters, so it was reverted.
 - Decoys (0 of 3 to pass): critique 0/3 (artwright fired once), pixel 0/3 (pixelwright-make 5 of 6 runs), brand 0/3, generate 0/3 (comfyui-gen 3/3). All pass.
