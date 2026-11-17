@@ -1,6 +1,6 @@
 # HANDOFF: photowright
 
-Status: Step E first real jobs done (phw 0.4.1, 2026-11-17): four kinds run on Mark's projects, seven fixes from them, 104 tests pass normally and with PHW_RUNG_MAX=1. Waiting on Mark: askwright set `photowright-stepE-jobs-2026-11-17` (keep/redo per job). Next: act on those answers, then Step F. Repo private m4bwav/photowright (main).
+Status: Step F part 1 done (phw 0.5.0, 2026-11-17): plugin manifest, hub skill `photowright` (no siblings), evergreen companions, eval suite (12/15 cases with the skill; decoys 4/4; action 3/3 with, 1/3 baseline), README with banner, SECURITY.md, merged to main. Not tagged, not public, no wiki. Next: Mark's Step E answers in set `photowright-stepE-jobs-2026-11-17`, then evergreen-worth, wiki, public repo plus release plus install. Repo private m4bwav/photowright (main).
 
 Continue prompt: [plans/photowright-continue-prompt.md](plans/photowright-continue-prompt.md)
 
@@ -25,7 +25,7 @@ Continue prompt: [plans/photowright-continue-prompt.md](plans/photowright-contin
 1. Step G: Szeliski 2nd ed. is free online; a reader subagent distills it (BUILD-BRIEF). The rest of ai-docs/notes/books.md are leads.
 2. Step E: first real jobs, one per kind from Mark's five projects (Arvum sprites, SpaceDeckBuilder2 cards, polywright print/laser, AI film stills, markdavidrogers.com images): a photo retouch, a layered composite, a batch over a folder (phw batch, dry run first), a trace to a clean vector (phw trace + vcheck + export, DXF for laser). Each goes through the bars, then to Mark on an askwright page. Whatever fails becomes a test.
    Batch 4 notes: VTracer always runs in a subprocess and a crash falls back to the own region tracer (rung 1), which beats VTracer on logo, icon and line art with fewer nodes. The own photo trace clears 0.80 by a thin margin (0.804, k=32). Node budgets are 2x the TRUE VTracer counts (the bake-off regex inflated them). EPS is structure-tested only (Inkscape needs Ghostscript). Potrace is still not installed (backend refuses with the link). `run` was not extended to stack/stitch recipes (they store `others` as absolute paths and replay through apply_steps already, untested).
-3. Step F: hub skill (photowright; siblings -edit and -vectorize only if trigger evals show the need), evals with a no-skill baseline and decoys (critique, pixel art, brand work, generation), worth check, README with banner, SECURITY.md, wiki, public repo, release and install.
+3. Step F rest: (a) act on Mark's Step E answers (set photowright-stepE-jobs-2026-11-17); (b) evergreen-worth on skills/photowright; (c) the three failing triggers (remove-object, psd, dxf: file-less prompts, no skill fires; see TESTS.md T-20261117-1); (d) wiki (wikiwright), make the repo public, tag 0.5.0 release, install, add to Ai/plugin-backlog/existing-plugins.md. Banner done: .github/images/banner.jpg (Z-Image, Mac, seed 22).
 4. Last (Mark's ruling): `bridge` to free editors (GIMP batch, Krita, Photopea); the Photoshop route is documentation only.
 5. First everscout scan of image-editing (everscout-scan) when convenient.
 Beat image-editing: built 2026-11-17 at Ai/indie-ai-scout/beats/image-editing (32 sources, 58 entities, 22 questions, 10 books). Owner items there: study outline approval, 4 candidate metrics, engagement (off). Not scanned yet.

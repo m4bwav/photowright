@@ -1,0 +1,195 @@
+{
+  "skill": "photowright",
+  "_format": "skill-creator evals.json plus evergreen fields (kind, decoy, evidence, baseline). Rules: evergreen protocol/TESTING.md. Decoys: critique and ranking (artwright), pixel art (pixelwright), brand marks from nothing (brandwright), generation (comfyui-gen). Action evidence: evals/check.py.",
+  "evals": [
+    {
+      "id": "trigger-brighten",
+      "kind": "trigger",
+      "prompt": "This photo is too dark, can you brighten it and fix the colour? tests/fixtures/dark-photo.jpg",
+      "expectations": [
+        "the photowright skill is invoked"
+      ],
+      "runs": 3
+    },
+    {
+      "id": "trigger-remove-bg",
+      "kind": "trigger",
+      "prompt": "Remove the white background from tests/fixtures/logo.png so I get a transparent PNG",
+      "expectations": [
+        "the photowright skill is invoked"
+      ],
+      "runs": 3
+    },
+    {
+      "id": "trigger-remove-object",
+      "kind": "trigger",
+      "prompt": "There's a stranger in the corner of my vacation photo, remove him and fill in the background",
+      "expectations": [
+        "the photowright skill is invoked"
+      ],
+      "runs": 3
+    },
+    {
+      "id": "trigger-perspective",
+      "kind": "trigger",
+      "prompt": "Fix the perspective on this photo of a painting I took at an angle so it's a flat rectangle",
+      "expectations": [
+        "the photowright skill is invoked"
+      ],
+      "runs": 3
+    },
+    {
+      "id": "trigger-batch",
+      "kind": "trigger",
+      "prompt": "Resize every jpg in my photos folder to 1600 px wide and sharpen them a little",
+      "expectations": [
+        "the photowright skill is invoked"
+      ],
+      "runs": 3
+    },
+    {
+      "id": "trigger-psd",
+      "kind": "trigger",
+      "prompt": "Open this PSD and tell me what layers it has, then flatten it to a PNG",
+      "expectations": [
+        "the photowright skill is invoked"
+      ],
+      "runs": 3
+    },
+    {
+      "id": "trigger-vectorize",
+      "kind": "trigger",
+      "prompt": "Vectorize my logo tests/fixtures/logo.png into a clean SVG",
+      "expectations": [
+        "the photowright skill is invoked"
+      ],
+      "runs": 3
+    },
+    {
+      "id": "trigger-dxf",
+      "kind": "trigger",
+      "prompt": "Trace this drawing and give me a DXF in millimetres for my laser cutter",
+      "expectations": [
+        "the photowright skill is invoked"
+      ],
+      "runs": 3
+    },
+    {
+      "id": "decoy-critique",
+      "kind": "trigger",
+      "prompt": "Critique this painting's composition and tell me which of these two renders is better",
+      "expectations": [
+        "the photowright skill is NOT invoked (artwright owns it)"
+      ],
+      "runs": 3,
+      "decoy": true
+    },
+    {
+      "id": "decoy-pixel",
+      "kind": "trigger",
+      "prompt": "Turn this AI sprite into real pixel art with a 16-colour palette and snap the grid",
+      "expectations": [
+        "the photowright skill is NOT invoked (pixelwright owns it)"
+      ],
+      "runs": 3,
+      "decoy": true
+    },
+    {
+      "id": "decoy-brand",
+      "kind": "trigger",
+      "prompt": "Design a logo and brand palette for my new bakery from scratch",
+      "expectations": [
+        "the photowright skill is NOT invoked (brandwright owns it)"
+      ],
+      "runs": 3,
+      "decoy": true
+    },
+    {
+      "id": "decoy-generate",
+      "kind": "trigger",
+      "prompt": "Generate an image of a castle at sunset with ComfyUI",
+      "expectations": [
+        "the photowright skill is NOT invoked (comfyui-gen owns it)"
+      ],
+      "runs": 3,
+      "decoy": true
+    },
+    {
+      "id": "action-trace-logo",
+      "kind": "action",
+      "prompt": "Trace tests/fixtures/logo.png to a clean SVG at out/logo.svg and check that it matches the original.",
+      "expectations": [
+        "out/logo.svg exists and renders back to the source with overlap >= 0.95 (phw vcheck)",
+        "no more than 8 paths"
+      ],
+      "evidence": {
+        "type": "command",
+        "run": "python evals/check.py trace",
+        "expect": "exit 0"
+      },
+      "tools": [
+        "Read",
+        "Write",
+        "Edit",
+        "Bash",
+        "Glob",
+        "Grep",
+        "Skill"
+      ],
+      "max_turns": 30,
+      "runs": 1,
+      "baseline": "2026-11-17 claude -p sonnet, no plugin: wrote its own tracer; out/logo.svg passes vcheck (overlap >= 0.95, <= 8 paths). PASS (case does not separate the arms on this simple logo)."
+    },
+    {
+      "id": "action-dxf-laser",
+      "kind": "action",
+      "prompt": "Turn tests/fixtures/logo.png into a DXF for my laser cutter, 50 mm wide, saved at out/logo.dxf.",
+      "expectations": [
+        "out/logo.dxf exists, is DXF with an ENTITIES section and its extent is 50 mm wide (EXTMAX x 50 +- 1.5)"
+      ],
+      "evidence": {
+        "type": "command",
+        "run": "python evals/check.py dxf",
+        "expect": "exit 0"
+      },
+      "tools": [
+        "Read",
+        "Write",
+        "Edit",
+        "Bash",
+        "Glob",
+        "Grep",
+        "Skill"
+      ],
+      "max_turns": 30,
+      "runs": 1,
+      "baseline": "2026-11-17 claude -p sonnet, no plugin: out/logo.dxf not at 50 mm (evidence exit 1). FAIL (skill needed)."
+    },
+    {
+      "id": "action-cutout",
+      "kind": "action",
+      "prompt": "Remove the white background from tests/fixtures/logo.png and save a transparent PNG at out/logo-cut.png. Keep a recipe of the edit at out/cut.json so I can replay it.",
+      "expectations": [
+        "out/logo-cut.png has alpha: corners transparent, centre opaque",
+        "out/cut.json is a photowright recipe that phw run replays"
+      ],
+      "evidence": {
+        "type": "command",
+        "run": "python evals/check.py cutout",
+        "expect": "exit 0"
+      },
+      "tools": [
+        "Read",
+        "Write",
+        "Edit",
+        "Bash",
+        "Glob",
+        "Grep",
+        "Skill"
+      ],
+      "max_turns": 30,
+      "runs": 1,
+      "baseline": "2026-11-17 claude -p sonnet, no plugin: no replayable photowright recipe at out/cut.json (evidence exit 1). FAIL (skill needed)."
+    }
+  ]
+}
