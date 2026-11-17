@@ -1,6 +1,6 @@
 # HANDOFF: photowright
 
-Status: Step D batch 2 (select, mask, cutout, layers, open, save; PSD+ORA) on top of batch 1; 57 tests, GIMP 3 opens phw's PSD and ORA with the same layers. scripts/phw.py is now an entry point over the package scripts/phw/ (core, masks, compose, layered). Next: batch 3 (heal, clone, fill, remove, restore). Repo private m4bwav/photowright (main).
+Status: Step D batch 3 merged (heal, clone, fill, remove, restore in scripts/phw/retouch.py; warp, perspective, upscale, stitch, stack in scripts/phw/transform.py) on top of batches 1-2; 75 tests pass normally and with PHW_RUNG_MAX=1. Next: batch 4 (run/batch/sheet/diff, then trace/simplify/vcheck/export). Repo private m4bwav/photowright (main).
 
 Continue prompt: [plans/photowright-continue-prompt.md](plans/photowright-continue-prompt.md)
 
@@ -21,7 +21,7 @@ Continue prompt: [plans/photowright-continue-prompt.md](plans/photowright-contin
 ## Next
 
 1. Step G: Szeliski 2nd ed. is free online; a reader subagent distills it (BUILD-BRIEF). The rest of ai-docs/notes/books.md are leads.
-2. Step D batch 3 in a worktree: heal, clone, fill, remove, restore (then warp... in the prompt's order). Later trace: reuse the bake-off rasterizer and pixel-exact tracer from ai-docs/notes/bakeoff/bakeoff_trace.py; run vtracer in a subprocess. GIMP 3 batch binary: %LOCALAPPDATA%/Programs/GIMP 3/bin/gimp-console-3.exe (core.gimp_console() finds it; layered.gimp_layers() lists what GIMP reads). cutout --method birefnet is a stub naming the comfyui-gen route.
+2. Step D batch 4 in a worktree: `run` (exists for single-image recipes; extend to stack/stitch recipes, which store `others` as absolute paths), `batch` (recipe over a folder, dry run first, never overwrite, second run changes nothing), `sheet`, `diff`; then `trace`, `simplify`, `vcheck`, `export`. Batch 3 notes: fill --method lama and upscale --method realesrgan are stubs naming the comfyui-gen route; stitch refuses at rung 1; seam carving left out (patent flag). OpenCV Stitcher fails on some synthetic scenes (status 1) and once asserted inside OpenCV 5.0; seamlessClone needs the region grown 3 px (a full-box mask changes almost nothing). Trace: reuse the bake-off rasterizer and pixel-exact tracer from ai-docs/notes/bakeoff/bakeoff_trace.py; run vtracer in a subprocess. GIMP 3 batch binary: %LOCALAPPDATA%/Programs/GIMP 3/bin/gimp-console-3.exe (core.gimp_console() finds it; layered.gimp_layers() lists what GIMP reads). cutout --method birefnet is a stub naming the comfyui-gen route.
 3. Own region tracer with holes (bar: overlap 0.95 or more on logo and icon) before it is used as the fallback.
 4. First everscout scan of image-editing (everscout-scan) when convenient.
 Beat image-editing: built 2026-11-17 at Ai/indie-ai-scout/beats/image-editing (32 sources, 58 entities, 22 questions, 10 books). Owner items there: study outline approval, 4 candidate metrics, engagement (off). Not scanned yet.
