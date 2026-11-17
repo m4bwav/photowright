@@ -1,0 +1,22 @@
+{
+  "version": 1,
+  "beats": ["image-editing"],
+  "targets": [
+    {"kind": "reddit", "sub": "GIMP", "weight": "core", "keep": "scripted or batch edits, Script-Fu and Python-Fu recipes, PSD round-trip reports"},
+    {"kind": "reddit", "sub": "krita", "keep": "layer, blend and file-format behaviour; Python scripting"},
+    {"kind": "reddit", "sub": "photoshop", "weight": "low", "keep": "technique breakdowns that name the underlying operation (masks, frequency separation, blend modes)"},
+    {"kind": "reddit", "sub": "postprocessing", "keep": "retouch and grading methods with steps"},
+    {"kind": "reddit", "sub": "Inkscape", "weight": "core", "keep": "trace bitmap settings, clean SVG for cutters and lasers, command-line export"},
+    {"kind": "reddit", "sub": "cricut", "weight": "low", "keep": "what makes a traced SVG cut cleanly; import failures"},
+    {"kind": "reddit", "sub": "lasercutting", "weight": "low", "keep": "DXF and SVG import limits, path cleanup"},
+    {"kind": "reddit", "sub": "computervision", "keep": "segmentation, matting, inpainting and upscaling models with licences"},
+    {"kind": "hn", "query": "image editor", "keep": "open editors and image libraries, points > 50"},
+    {"kind": "hn", "query": "vectorize", "keep": "tracers and raster-to-vector methods"},
+    {"kind": "github", "url": "https://github.com/visioncortex/vtracer", "keep": "releases and tracing options"},
+    {"kind": "github", "url": "https://github.com/libvips/libvips", "keep": "releases, new operations"},
+    {"kind": "github", "url": "https://github.com/ImageMagick/ImageMagick", "weight": "low", "keep": "releases and security fixes"},
+    {"kind": "github", "url": "https://github.com/python-pillow/Pillow", "keep": "releases: format, colour-profile and mode changes"},
+    {"kind": "web", "url": "https://github.com/topics/image-vectorization", "keep": "new open tracers"},
+    {"kind": "web", "url": "https://github.com/topics/background-removal", "keep": "new cut-out models; check the weight licence"}
+  ]
+}
