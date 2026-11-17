@@ -20,8 +20,8 @@ Continue prompt: [plans/photowright-continue-prompt.md](plans/photowright-contin
 
 ## Next
 
-1. If the beat line below says pending, check that `~/.everscout` has the image-editing beat; if it does not, rerun everscout-beat.
+1. Step G: Szeliski 2nd ed. is free online; a reader subagent distills it (BUILD-BRIEF). The rest of ai-docs/notes/books.md are leads.
 2. Step D in a worktree: scripts/phw.py, with commands in the prompt's order (doctor, explain, inspect, convert first). Reuse the bake-off rasterizer and pixel-exact tracer from ai-docs/notes/bakeoff/bakeoff_trace.py. Run vtracer in a subprocess.
 3. Own region tracer with holes (bar: overlap 0.95 or more on logo and icon) before it is used as the fallback.
-4. Step G: start ai-docs/notes/books.md.
-Beat image-editing: pending (subagent running 2026-11-17)
+4. First everscout scan of image-editing (everscout-scan) when convenient.
+Beat image-editing: built 2026-11-17 at Ai/indie-ai-scout/beats/image-editing (32 sources, 58 entities, 22 questions, 10 books). Owner items there: study outline approval, 4 candidate metrics, engagement (off). Not scanned yet.
