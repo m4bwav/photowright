@@ -1,6 +1,6 @@
 # HANDOFF: photowright
 
-Status: not started (2026-11-16). Only the continue prompt exists; no repository, no code, no research yet. Next: section 1 of the prompt, then Step A (research).
+Status: Step A research in progress (2026-11-16). Repo private m4bwav/photowright exists.
 
 Continue prompt: [plans/photowright-continue-prompt.md](plans/photowright-continue-prompt.md)
 
@@ -16,5 +16,6 @@ Nothing yet. The first askwright page (name, public or private, whether he wants
 
 ## Next
 
-1. Create the git repository for this folder (private until Mark rules) and set up ai-docs with everlast-setup.
-2. Step A research, one subagent per topic.
+1. Merge kb/tools-a*.json into kb/tools.json (dedupe by name), delete the parts, commit.
+2. Any Step A topic whose references file is missing: rerun one subagent for it.
+3. Step B (everscout beat, harvest.json), then Step C design note and the first askwright page.
