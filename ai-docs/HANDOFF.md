@@ -1,6 +1,6 @@
 # HANDOFF: photowright
 
-Status: Steps A-C done (2026-11-17), apart from the beat report; Step D (build phw.py) next. Repo private m4bwav/photowright (main).
+Status: Step D batch 1 merged (PR #2: doctor, explain, inspect, convert, adjust, crop, resize, rotate, sharpen, denoise, run; 30 tests). Next: batch 2 (select, mask, cutout, layers, open/save PSD+ORA). Repo private m4bwav/photowright (main).
 
 Continue prompt: [plans/photowright-continue-prompt.md](plans/photowright-continue-prompt.md)
 
@@ -16,7 +16,7 @@ Continue prompt: [plans/photowright-continue-prompt.md](plans/photowright-contin
 
 ## Waiting on Mark
 
-- Askwright set `photowright-setup-2026-11-17`: folder [ask/photowright-setup-2026-11-17](../ask/photowright-setup-2026-11-17) (`ask.py read` it). Asks for the name, public timing, the Photoshop bridge and version, the first-job projects, and installing Potrace/Inkscape/GIMP. Carry on with the guesses in [plans/design.md](plans/design.md) section 8.
+- ANSWERED and closed 2026-11-17 (see log): askwright set `photowright-setup-2026-11-17`: folder [ask/photowright-setup-2026-11-17](../ask/photowright-setup-2026-11-17) (`ask.py read` it). Asks for the name, public timing, the Photoshop bridge and version, the first-job projects, and installing Potrace/Inkscape/GIMP. Carry on with the guesses in [plans/design.md](plans/design.md) section 8.
 
 ## Next
 
@@ -25,3 +25,6 @@ Continue prompt: [plans/photowright-continue-prompt.md](plans/photowright-contin
 3. Own region tracer with holes (bar: overlap 0.95 or more on logo and icon) before it is used as the fallback.
 4. First everscout scan of image-editing (everscout-scan) when convenient.
 Beat image-editing: built 2026-11-17 at Ai/indie-ai-scout/beats/image-editing (32 sources, 58 entities, 22 questions, 10 books). Owner items there: study outline approval, 4 candidate metrics, engagement (off). Not scanned yet.
+
+## Szeliski book
+The download form needs a name and an email. Mark allowed his name and email (2026-11-17) if the terms carry no legal risk, checked with lexwright. The lexwright disclaimer gate is waiting for him to type "I agree". Terms seen: personal use, no reposting.
