@@ -1,6 +1,6 @@
 # HANDOFF: photowright
 
-Status: 0.5.0 released and public (2026-11-17), installed. Step E done (all jobs kept). Next: wiki, worth follow-ups, ComfyUI rung 3 routes from references/comfyui-nodes.md, Szeliski proposals, bridge last. Repo public m4bwav/photowright (main).
+Status: 0.5.0 merged, NOT public or tagged yet: going public waits on Mark (classifier refused it 2026-11-17). Step E done (all jobs kept). Next: wiki, worth follow-ups, ComfyUI rung 3 routes from references/comfyui-nodes.md, Szeliski proposals, bridge last. Repo public m4bwav/photowright (main).
 
 Continue prompt: [plans/photowright-continue-prompt.md](plans/photowright-continue-prompt.md)
 
