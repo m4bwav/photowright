@@ -128,24 +128,26 @@ def sheet(paths, labels=None, cols=None, cell=320, pad=12, label_h=None, bg=(32,
     rows = -(-n // cols)
     fs = max(12, cell // 16)
     label_h = label_h or fs + 10
+    # cells are `cell` wide and as tall as the tallest input's aspect needs (wide frames get no empty band)
+    ch = max(1, min(cell * 4, round(cell * max(im.height / im.width for im in ims))))
     W = cols * cell + (cols + 1) * pad
-    H = rows * (cell + label_h) + (rows + 1) * pad
+    H = rows * (ch + label_h) + (rows + 1) * pad
     out = Image.new("RGB", (W, H), bg)
     d = ImageDraw.Draw(out)
     f = font(fs)
     for i, (im, lab) in enumerate(zip(ims, labels)):
         r, c = divmod(i, cols)
-        x0, y0 = pad + c * (cell + pad), pad + r * (cell + label_h + pad)
+        x0, y0 = pad + c * (cell + pad), pad + r * (ch + label_h + pad)
         rgba = im.convert("RGBA")
-        k = min(cell / rgba.width, cell / rgba.height)
+        k = min(cell / rgba.width, ch / rgba.height)
         size = (max(1, round(rgba.width * k)), max(1, round(rgba.height * k)))
         small = rgba.resize(size, Image.NEAREST if k >= 2 else Image.LANCZOS)
-        ox, oy = x0 + (cell - size[0]) // 2, y0 + (cell - size[1]) // 2
+        ox, oy = x0 + (cell - size[0]) // 2, y0 + (ch - size[1]) // 2
         base = checker(*size).convert("RGBA")
         out.paste(Image.alpha_composite(base, small).convert("RGB"), (ox, oy))
         text = f"{lab}  ({im.width}x{im.height})"
         tw = d.textlength(text, font=f)
-        d.text((x0 + max(0, (cell - tw) / 2), y0 + cell + 4), text, fill=(235, 235, 235), font=f)
+        d.text((x0 + max(0, (cell - tw) / 2), y0 + ch + 4), text, fill=(235, 235, 235), font=f)
     return out
 
 

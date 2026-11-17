@@ -126,11 +126,13 @@ def trace_pixel(img, used):
             subs.append({"start": tuple(Lm[0]), "segs": [("L", tuple(p)) for p in Lm[1:]], "closed": True})
         shapes.append({"fill": ((v >> 24) & 255, (v >> 16) & 255, (v >> 8) & 255), "stroke": None, "width": 0,
                        "rule": "evenodd", "subs": subs})
+        if (v & 255) < 255:
+            shapes[-1]["opacity"] = (v & 255) / 255.0
     used.add("trace", 1, "own pixel-exact tracer (lattice loops, merged runs)")
     partial = int(((a[..., 3] > 0) & (a[..., 3] < 255)).sum())
     notes = [f"grid {g} px: {sw_}x{sh_} cells"]
     if partial:
-        notes.append(f"{partial} semi-transparent pixels traced as opaque colours")
+        notes.append(f"{partial} semi-transparent pixels kept as fill-opacity")
     return {"width": w, "height": h, "shapes": shapes, "notes": notes}, {"grid": g, "cells": sh_ * sw_, "holes": holes}
 
 

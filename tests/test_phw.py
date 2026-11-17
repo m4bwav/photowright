@@ -380,8 +380,11 @@ class TestRecipe(Base):
         second = run("run", rec)
         self.assertEqual(second["replay"], "same")
         self.assertNotEqual(first["output"], second["output"])
-        # params are resolved when recorded: resize stored 8x6 (from the 32x24 source), and it stays 8x6
-        self.assertEqual(arr(second["output"]).shape[:2], (6, 8))
+        # resize records the intent (width 8, aspect kept at replay), so a recipe also fits other files in a
+        # batch (Step E): crop 18x16 -> rotate 90 -> 16x18 -> width 8 -> 8x9
+        self.assertEqual(r["steps"][-1]["params"].get("width"), 8)
+        self.assertNotIn("height", r["steps"][-1]["params"])
+        self.assertEqual(arr(second["output"]).shape[:2], (9, 8))
         log = [json.loads(x) for x in (job / "log.jsonl").read_text().splitlines()]
         self.assertTrue(all("rung" in x and "tool" in x for x in log))
 
