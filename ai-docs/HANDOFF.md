@@ -1,6 +1,6 @@
 # HANDOFF: photowright
 
-Status: Step D batch 4 merged (phw 0.4.0): batch, sheet, diff in scripts/phw/batchops.py; trace (all six kinds), simplify, vcheck, export (SVG/PDF/EPS/DXF) in scripts/phw/vtrace.py and vector.py, on top of batches 1-3. 97 tests pass normally and with PHW_RUNG_MAX=1. Every vector bar is met at both rungs (numbers in the log, 2026-11-17 batch 4). Next: Step E first real jobs, then Step F; the bridge to free editors is built last (Mark). Repo private m4bwav/photowright (main).
+Status: Step E first real jobs done (phw 0.4.1, 2026-11-17): four kinds run on Mark's projects, seven fixes from them, 104 tests pass normally and with PHW_RUNG_MAX=1. Waiting on Mark: askwright set `photowright-stepE-jobs-2026-11-17` (keep/redo per job). Next: act on those answers, then Step F. Repo private m4bwav/photowright (main).
 
 Continue prompt: [plans/photowright-continue-prompt.md](plans/photowright-continue-prompt.md)
 
@@ -15,6 +15,8 @@ Continue prompt: [plans/photowright-continue-prompt.md](plans/photowright-contin
 - Summary of findings: last entry of [log.md](log.md).
 
 ## Waiting on Mark
+
+- OPEN 2026-11-17: askwright set `photowright-stepE-jobs-2026-11-17`, folder [ask/photowright-stepE-jobs-2026-11-17](../ask/photowright-stepE-jobs-2026-11-17) (`ask.py read` it). Six questions: keep/redo for the retouch, card composite, sprite batch, Electrum pixel trace, sun emblem DXF, and VTracer vs own tracer for the emblem. Jobs live outside the repo in D:/m4bwa/Claude/Projects/Ai/photowright-jobs/ (1-retouch, 2-composite, 3-batch, 4-trace; review/ holds the before/after sheets). artwright-judge blind pairs skipped: only one pair existed and it is on the page as a compare question.
 
 - ANSWERED and closed 2026-11-17 (see log): askwright set `photowright-setup-2026-11-17`: folder [ask/photowright-setup-2026-11-17](../ask/photowright-setup-2026-11-17) (`ask.py read` it). Asks for the name, public timing, the Photoshop bridge and version, the first-job projects, and installing Potrace/Inkscape/GIMP. Carry on with the guesses in [plans/design.md](plans/design.md) section 8.
 

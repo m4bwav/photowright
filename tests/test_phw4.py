@@ -303,7 +303,9 @@ class TestBatchSheetDiff(unittest.TestCase):
         r = run("--json", "sheet", self.src / "im0.png", self.src / "im1.png", "--labels", "before,after",
                 "--cell", "100", "-o", self.d / "s.png")
         im = Image.open(r["output"])
-        self.assertEqual(im.size, (2 * 100 + 3 * 12, 100 + 22 + 2 * 12))  # label 12 px font + 10
+        w0, h0 = Image.open(self.src / "im0.png").size
+        ch = round(100 * h0 / w0)  # cells are as tall as the inputs' aspect needs (Step E)
+        self.assertEqual(im.size, (2 * 100 + 3 * 12, ch + 22 + 2 * 12))  # label 12 px font + 10
         self.assertEqual(r["labels"], ["before", "after"])
         a = np.asarray(im.convert("RGB")).astype(int)
         self.assertGreater(a[12 + 50, 12 + 50].std() + a[12:112, 12:112].std(), 10, "cell has the image")

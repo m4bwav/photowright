@@ -40,7 +40,7 @@ try:
 except Exception:  # pragma: no cover - Pillow built without LittleCMS
     ImageCms = None
 
-VERSION = "0.4.0"
+VERSION = "0.4.1"
 ROOT = Path(__file__).resolve().parent.parent.parent
 
 # Hooks filled by the other modules of the package (masks, compose, layered).
@@ -603,8 +603,23 @@ def op_crop(img, p, used):
     return img.copy(px=img.px[t:b, l:r].copy())
 
 
+def resize_target(w, h, p):
+    """Target size from a resize step: scale, width and/or height (one side keeps the aspect)."""
+    if p.get("scale"):
+        return max(1, round(w * float(p["scale"]))), max(1, round(h * float(p["scale"])))
+    pw, ph = p.get("width"), p.get("height")
+    if pw and ph:
+        return int(pw), int(ph)
+    if pw:
+        return int(pw), max(1, round(h * int(pw) / w))
+    if ph:
+        return max(1, round(w * int(ph) / h)), int(ph)
+    raise ValueError("resize: give scale, width or height")
+
+
 def op_resize(img, p, used):
-    w, h = int(p["width"]), int(p["height"])
+    h0, w0 = img.px.shape[:2]
+    w, h = resize_target(w0, h0, p)
     filt = {"lanczos": Image.LANCZOS, "bicubic": Image.BICUBIC, "bilinear": Image.BILINEAR,
             "nearest": Image.NEAREST, "box": Image.BOX}[p.get("filter", "lanczos")]
     used.add("resize", 1, f"Pillow F-mode {p.get('filter', 'lanczos')} in linear light")
@@ -697,7 +712,8 @@ def op_denoise(img, p, used):
 OPS = {"adjust.levels": op_levels, "adjust.curves": op_curves, "adjust.exposure": op_exposure,
        "adjust.white_balance": op_white_balance, "adjust.hue_sat": op_hue_sat, "adjust.lut": op_lut,
        "adjust.bw": op_bw, "crop": op_crop, "resize": op_resize, "rotate": op_rotate,
-       "sharpen": op_sharpen, "denoise": op_denoise}
+       "sharpen": op_sharpen, "denoise": op_denoise,
+       "convert": None}  # filled below (op_convert is defined after OPS)
 
 
 def load_mask(path, shape):
@@ -824,19 +840,15 @@ def cmd_crop(a):
 
 
 def cmd_resize(a):
-    with Image.open(a.input) as im:
-        w, h = ImageOps.exif_transpose(im).size
+    # record the intent (scale, or one side), not the pixel size, so a recipe replays on other files (batch)
     if a.scale:
-        nw, nh = max(1, round(w * a.scale)), max(1, round(h * a.scale))
-    elif a.width and a.height:
-        nw, nh = a.width, a.height
-    elif a.width:
-        nw, nh = a.width, max(1, round(h * a.width / w))
-    elif a.height:
-        nw, nh = max(1, round(w * a.height / h)), a.height
+        p = {"scale": a.scale}
+    elif a.width or a.height:
+        p = {k: v for k, v in (("width", a.width), ("height", a.height)) if v}
     else:
         raise SystemExit("resize: give --scale or --width/--height")
-    return edit_command(a, "resize", [{"op": "resize", "params": {"width": nw, "height": nh, "filter": a.filter}}])
+    p["filter"] = a.filter
+    return edit_command(a, "resize", [{"op": "resize", "params": p}])
 
 
 def cmd_rotate(a):
@@ -858,14 +870,12 @@ def cmd_denoise(a):
         "method": a.method, "strength": a.strength, "radius": a.radius}}])
 
 
-def cmd_convert(a):
-    used = Used()
-    img = load(a.input, used)
-    ext = ("." + a.format.lower().lstrip(".")) if a.format else None
-    out = out_for(a.input, a.output, "convert", ext)
-    if a.profile == "strip":
+def op_convert(img, p, used):
+    """Profile and metadata handling as a recipe step (format and quality are save options)."""
+    prof, intent = p.get("profile", "keep"), int(p.get("intent", 0))
+    if prof == "strip":
         img.icc = None
-    elif a.profile == "srgb" and img.icc and "srgb" not in (icc_name(img.icc) or "").lower():
+    elif prof == "srgb" and img.icc and "srgb" not in (icc_name(img.icc) or "").lower():
         if ImageCms is None:
             raise SystemExit("convert to sRGB needs Pillow's ImageCms")
         if img.nc != 3:
@@ -876,25 +886,42 @@ def cmd_convert(a):
             if img.bits > 8:
                 img.notes.append("profile conversion ran at 8 bits per channel (LittleCMS via Pillow)")
             u8 = Image.fromarray(np.round(np.clip(img.color(), 0, 1) * 255).astype(np.uint8), "RGB")
-            conv = ImageCms.profileToProfile(u8, src, dst, renderingIntent=a.intent, outputMode="RGB")
+            conv = ImageCms.profileToProfile(u8, src, dst, renderingIntent=intent, outputMode="RGB")
             img = img.with_color(np.asarray(conv, np.float32) / 255.0)
             img.notes.append(f"pixels converted from '{icc_name(img.icc)}' to sRGB")
             img.icc = srgb_icc()
             used.add("profile", 1, "Pillow ImageCms (LittleCMS)")
-    elif a.profile == "srgb" and not img.icc:
+    elif prof == "srgb" and not img.icc:
         img.icc = srgb_icc()
         img.notes.append("sRGB profile embedded (source had none)")
-    if a.metadata == "strip":
+    if p.get("metadata", "keep") == "strip":
         img.exif, img.xmp = None, None
-    elif a.strip_gps and img.exif:
+    elif p.get("strip_gps") and img.exif:
         ex = Image.Exif()
         ex.load(img.exif)
         if 0x8825 in ex:
             del ex[0x8825]
             img.notes.append("GPS stripped")
         img.exif = _exif_bytes(ex)
+    used.add("convert", 1, "Pillow")
+    return img
+
+
+def cmd_convert(a):
+    t0 = time.time()
+    used = Used()
+    img = load(a.input, used)
+    ext = ("." + a.format.lower().lstrip(".")) if a.format else None
+    out = out_for(a.input, a.output, "convert", ext)
+    steps = [{"op": "convert", "params": {"profile": a.profile, "intent": a.intent, "metadata": a.metadata,
+                                          "strip_gps": bool(a.strip_gps)}}]
+    img = apply_steps(img, steps, used)
     bits = a.bits or img.bits
     save(img, out, bits, used, quality=a.quality)
+    if a.recipe:
+        record(a.recipe, a.input, steps, out, used, time.time() - t0)
+        if a.quality is not None or a.format:
+            img.notes.append("recipe: format and quality are save options and are not recorded; pass --ext to run/batch")
     return {"command": "convert", "input": str(a.input), "output": str(out), "bits": bits,
             "profile": icc_name(img.icc), "rung": used.rung(), "tool": used.tool(), "used": used.items,
             "notes": img.notes}
@@ -1216,3 +1243,4 @@ def cli(argv=None):
     else:
         human(r)
 
+OPS["convert"] = op_convert

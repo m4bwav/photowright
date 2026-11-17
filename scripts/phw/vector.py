@@ -212,13 +212,13 @@ def parse_svg(text):
 
     def attrs(el, inh):
         a = dict(inh)
-        for k in ("fill", "stroke", "stroke-width", "fill-rule"):
+        for k in ("fill", "stroke", "stroke-width", "fill-rule", "fill-opacity"):
             if el.get(k) is not None:
                 a[k] = el.get(k)
         for kv in (el.get("style") or "").split(";"):
             if ":" in kv:
                 k, v = kv.split(":", 1)
-                if k.strip() in ("fill", "stroke", "stroke-width", "fill-rule"):
+                if k.strip() in ("fill", "stroke", "stroke-width", "fill-rule", "fill-opacity"):
                     a[k.strip()] = v.strip()
         return a
 
@@ -267,6 +267,9 @@ def parse_svg(text):
         doc["shapes"].append({"fill": fill, "stroke": stroke, "width": (_len(a.get("stroke-width")) or 1.0) * scale,
                               "rule": "evenodd" if a.get("fill-rule") == "evenodd" else "nonzero",
                               "subs": transform_subs(subs, M)})
+        fo = float(a.get("fill-opacity", 1))
+        if fill is not None and fo < 1:
+            doc["shapes"][-1]["opacity"] = max(0.0, fo)
 
     walk(root, {}, base)
     if skipped:
@@ -311,6 +314,8 @@ def to_svg(doc, units=None, dpi=96.0):
         a = f'fill="{hexc(sh["fill"])}"' if sh["fill"] else 'fill="none"'
         if sh["fill"] and sh["rule"] == "evenodd":
             a += ' fill-rule="evenodd"'
+        if sh["fill"] and sh.get("opacity", 1) < 1:
+            a += f' fill-opacity="{sh["opacity"]:.4g}"'
         if sh["stroke"]:
             a += (f' stroke="{hexc(sh["stroke"])}" stroke-width="{fnum(sh["width"])}"'
                   ' stroke-linecap="round" stroke-linejoin="round"')
@@ -411,13 +416,13 @@ def render(doc, w=None, h=None, S=None, bg=(255, 255, 255)):
         flat = [flatten(s) * [sx, sy] for s in sh["subs"]]
         jobs = []
         if sh["fill"]:
-            jobs.append(([P for P in flat if len(P) >= 3], sh["rule"], sh["fill"]))
+            jobs.append(([P for P in flat if len(P) >= 3], sh["rule"], sh["fill"], float(sh.get("opacity", 1))))
         if sh["stroke"]:
             sp = []
             for P, s in zip(flat, sh["subs"]):
                 sp += stroke_polys(P, sh["width"] * math.sqrt(sx * sy), s["closed"])
-            jobs.append((sp, "nonzero", sh["stroke"]))
-        for polys, rule, col in jobs:
+            jobs.append((sp, "nonzero", sh["stroke"], 1.0))
+        for polys, rule, col, op in jobs:
             if not polys:
                 continue
             allp = np.vstack(polys) * S
@@ -428,7 +433,11 @@ def render(doc, w=None, h=None, S=None, bg=(255, 255, 255)):
             if X1 <= X0 or Y1 <= Y0:
                 continue
             m = coverage(polys, X0, Y0, X1 - X0, Y1 - Y0, rule, S)
-            can[Y0:Y1, X0:X1][m] = col
+            if op >= 1:
+                can[Y0:Y1, X0:X1][m] = col
+            else:
+                sub = can[Y0:Y1, X0:X1]
+                sub[m] = np.rint(sub[m] * (1 - op) + np.asarray(col, float) * op).astype(np.uint8)
     out = can.reshape(h, S, w, S, 3).mean(axis=(1, 3))
     return np.rint(out).astype(np.uint8)
 
@@ -438,6 +447,21 @@ def source_rgb(path_or_img):
     im = im.convert("RGBA")
     bg = Image.new("RGBA", im.size, (255, 255, 255, 255))
     return np.asarray(Image.alpha_composite(bg, im).convert("RGB"))
+
+
+def aliased_palette(src, kmax=16):
+    """The exact colours of a hard-edged source (no anti-aliasing): <= kmax colours, else None."""
+    key = (src[..., 0].astype(np.int64) << 16) | (src[..., 1].astype(np.int64) << 8) | src[..., 2]
+    vals = np.unique(key)
+    if len(vals) > kmax:
+        return None
+    return np.stack([(vals >> 16) & 255, (vals >> 8) & 255, vals & 255], 1).astype(np.int64)
+
+
+def snap_to(ren, pal):
+    """Each rendered pixel to the nearest palette colour (an aliased render of the same vector)."""
+    d = ((ren.astype(np.int64)[..., None, :] - pal[None, None]) ** 2).sum(-1)
+    return pal[np.argmin(d, -1)].astype(np.uint8)
 
 
 def overlap(src, ren, tol=TOL):
@@ -521,6 +545,14 @@ def vcheck(doc, source=None, kind=None, cells=None):
         ren = render(doc, src.shape[1], src.shape[0], S=SS if src.size <= 4e6 * 3 else None)
         r["overlap"] = round(overlap(src, ren), 4)
         r["supersampling"] = SS
+        pal = aliased_palette(src)
+        if pal is not None:
+            # a hard-edged source cannot match an anti-aliased render on its edge pixels: compare the
+            # render snapped to the source's own colours, and keep the raw figure as overlap_antialiased
+            r["overlap_antialiased"] = r["overlap"]
+            r["overlap"] = round(overlap(src, snap_to(ren, pal)), 4)
+            r["notes"].append(f"aliased source ({len(pal)} colours): overlap measured on the render snapped "
+                              "to those colours")
         bar = BARS.get(kind)
         if bar is not None:
             r["overlap_bar"] = bar
@@ -837,7 +869,7 @@ def to_pdf(doc, dpi=96.0):
     k = 72.0 / dpi
     ops = {"rgb_fill": "rg", "rgb_stroke": "RG", "width": "w", "cap": "J", "join": "j", "m": "m", "l": "l",
            "c": "c", "h": "h", "fill": "f", "eofill": "f*", "stroke": "S"}
-    content = "\n".join([f"{fnum(k)} 0 0 {fnum(-k)} 0 {fnum(H * k)} cm"] + _ps_ops(doc, ops)).encode("ascii")
+    content = "\n".join([f"{k:.6f} 0 0 {-k:.6f} 0 {H * k:.4f} cm"] + _ps_ops(doc, ops)).encode("ascii")
     z = zlib.compress(content)
     objs = [b"<< /Type /Catalog /Pages 2 0 R >>",
             b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
@@ -994,9 +1026,17 @@ def cmd_export(a):
     if fmt not in EXPORTERS:
         raise SystemExit(f"export: unknown format {fmt} (svg, pdf, eps, dxf)")
     ext, fn = EXPORTERS[fmt]
+    dropped = 0
+    if getattr(a, "drop", None):
+        gone = {c.strip().lstrip("#").lower() for c in a.drop.split(",") if c.strip()}
+        keep = [sh for sh in doc["shapes"] if hexc(sh["fill"] or sh["stroke"])[1:] not in gone]
+        dropped = len(doc["shapes"]) - len(keep)
+        doc = dict(doc, shapes=keep)
     out = write_out(core.out_for(a.input, a.output, "export", ext), fn(doc, a))
     r = {"command": "export", "input": str(a.input), "output": str(out), "format": fmt, "counts": counts(doc),
-         "rung": 1, "tool": [f"own {fmt.upper()} writer"], "notes": list(doc["notes"])}
+         "rung": 1, "tool": [f"own {fmt.upper()} writer"], "notes": list(doc.get("notes", []))}
+    if getattr(a, "drop", None):
+        r["dropped_shapes"] = dropped
     if fmt == "dxf":
         r["notes"].append("DXF R12: closed POLYLINE entities only, curves flattened to 0.1 px; "
                           "stacked colours overlap, so a cutter cuts every layer in full")
@@ -1044,6 +1084,7 @@ def add_commands(sub, edit):
     p.add_argument("--units", choices=("px", "mm", "in"), default="px", help="svg size units; dxf units (default px; mm for cutters)")
     p.add_argument("--dpi", type=float, default=96.0)
     p.add_argument("--check", action="store_true", help="open the export in Inkscape (svg, pdf) and compare")
+    p.add_argument("--drop", help="leave out shapes of these colours, e.g. ffffff (a white background is not a cut)")
     p.set_defaults(fn=cmd_export)
 
 
