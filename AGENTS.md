@@ -6,3 +6,4 @@ Image editing (Photoshop-like, from the command line) and raster-to-vector traci
 - Tool ladder: own code (stdlib, Pillow, NumPy) first; free unrestricted tools second; open-weight local models third; Photoshop optional and never required.
 - Research lives in `references/` (one file per topic, a source on every claim) and `kb/tools.json` (licence rows).
 - Neighbours keep their jobs: artwright critiques, pixelwright does pixel art, brandwright brand marks, comfyui-gen generates.
+- Code: `scripts/phw.py` is the CLI entry; the code is the package `scripts/phw/` (core: batch 1 edits and recipes; masks: select, mask, cutout; compose: blend modes and layers; layered: PSD/ORA open and save). Tests: `python -m unittest discover -s tests`, and again with `PHW_RUNG_MAX=1`; `PHW_SKIP_GIMP=1` skips the GIMP check.
