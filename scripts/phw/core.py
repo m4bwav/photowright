@@ -19,6 +19,7 @@ import argparse
 import difflib
 import hashlib
 import importlib
+import importlib.util
 import io
 import json
 import math
@@ -39,7 +40,7 @@ try:
 except Exception:  # pragma: no cover - Pillow built without LittleCMS
     ImageCms = None
 
-VERSION = "0.3.0"
+VERSION = "0.4.0"
 ROOT = Path(__file__).resolve().parent.parent.parent
 
 # Hooks filled by the other modules of the package (masks, compose, layered).
@@ -967,13 +968,16 @@ def cmd_doctor(a):
         return getattr(mod, "__version__", "present") if mod is not None else None
     mods = {"python": sys.version.split()[0], "Pillow": Image.__version__, "numpy": np.__version__,
             "ImageCms": ImageCms is not None, "cv2": ver("cv2"), "scipy": ver("scipy"),
-            "skimage": ver("skimage"), "vtracer (pip)": ver("vtracer")}
+            "skimage": ver("skimage"), "vtracer (pip)": ver("vtracer") or (importlib.util.find_spec("vtracer") and "present")}
     try:
         fmts = {f: bool(features.check(f)) for f in ("webp", "avif", "jpg", "zlib", "libtiff", "littlecms2")}
     except Exception:
         fmts = {}
     path = {t: shutil.which(t) for t in TOOLS_ON_PATH}
     path["gimp-console (installed)"] = gimp_console()
+    from . import vector  # noqa: PLC0415  (Inkscape is often installed but not on PATH)
+    if not path.get("inkscape"):
+        path["inkscape"] = vector.inkscape()
     cv2, nd = probe("cv2"), probe("scipy.ndimage")
     groups = {
         "load/save 8-bit, ICC, EXIF": (1, "Pillow"),
@@ -984,12 +988,11 @@ def cmd_doctor(a):
         "blur/sharpen": (2, "scipy.ndimage") if nd else (1, "NumPy separable Gaussian"),
         "denoise": (2, "OpenCV NL-means") if cv2 else (1, "NumPy median"),
         "profile conversion": (1, "ImageCms") if ImageCms else (0, "missing: Pillow without LittleCMS"),
-        "trace (later)": (2, "vtracer") if ver("vtracer") else (1, "own tracer (not built yet)"),
     }
     for fn in DOCTOR_GROUPS:
         groups.update(fn())
     missing = [k for k, v in mods.items() if v in (None, False)] + [t for t, p in path.items() if not p and t in (
-        "vtracer", "potrace", "inkscape", "gimp", "magick", "exiftool")]
+        "potrace", "inkscape", "gimp", "magick", "exiftool")]
     return {"command": "doctor", "version": VERSION, "rung_max": rung_max(), "modules": mods, "pillow_features": fmts,
             "on_path": path, "groups": {k: {"rung": v[0], "tool": v[1]} for k, v in groups.items()},
             "missing": missing, "rung": 1, "tool": ["stdlib"]}
