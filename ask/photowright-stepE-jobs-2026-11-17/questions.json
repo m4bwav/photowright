@@ -1,0 +1,265 @@
+{
+  "askwright": 1,
+  "id": "photowright-stepE-jobs-2026-11-17",
+  "title": "photowright first real jobs: keep or redo",
+  "context": "",
+  "asked_by": "photowright Step E session",
+  "product": "Claude Code",
+  "session": "",
+  "working_dir": "D:\\m4bwa\\Claude\\Projects\\Ai\\photowright",
+  "media_roots": [],
+  "questions": [
+    {
+      "id": "j1-retouch",
+      "kind": "choice",
+      "title": "Retouch: crash-site fin still",
+      "question": "Keep the retouched crash-site still, or redo it?",
+      "background": "Source: a frame at 95 s of D:/ComfyUI/output/video/final/crashsite/crashsite_120s_best_h_scored.mp4 (the tail fin at dusk), copied to D:/m4bwa/Claude/Projects/Ai/photowright-jobs/1-retouch/src/crashsite_fin_t95.png. phw ran three replayable steps: NL-means denoise (h 5), a curve that lifts the shadows (0.15 to 0.22) with saturation x1.12, then an unsharp mask in linear light. Result: D:/m4bwa/Claude/Projects/Ai/photowright-jobs/1-retouch/out/fin_retouched.png. Mean change per channel 0.04; replaying recipe.json gives the same picture within 5/255 (the step-by-step run saves 8-bit files between steps, the replay does not).",
+      "why": "A keep means retouch recipes like this one are good enough to offer for film stills; a redo tells me which way to push (stronger, softer, or a different fix).",
+      "look_for": [
+        "The grass and the dark lower third: more detail without blotchy noise?",
+        "The sky gradient: any banding introduced?",
+        "The fin edge: sharper without a halo?"
+      ],
+      "media": [
+        {
+          "src": "j1_retouch_full.png",
+          "alt": "Fin still before (top) and after (bottom)"
+        }
+      ],
+      "options": [
+        {
+          "id": "keep",
+          "label": "Keep the retouch as it is"
+        },
+        {
+          "id": "stronger",
+          "label": "Redo it stronger (more shadow lift and clarity)"
+        },
+        {
+          "id": "softer",
+          "label": "Redo it softer (closer to the original grade)"
+        }
+      ],
+      "guess": {
+        "option": "keep",
+        "why": "The change is gentle and clean; the frame was already well graded.",
+        "confidence": "low"
+      },
+      "created": "2026-11-17T08:59:50-06:00",
+      "updated": "2026-11-17T08:59:50-06:00"
+    },
+    {
+      "id": "j2-card",
+      "kind": "choice",
+      "title": "Composite: Advanced Alloys card mock",
+      "question": "Keep the Advanced Alloys card mock (PNG, PSD and ORA), or redo it?",
+      "background": "Built from the SpaceDeckBuilder2 card art Assets/Images/Cards/advanced_alloys.png (96 px, scaled x2.5 nearest) and the card text in Assets/Docs/research_deck_v2.txt (New Subject, Silver). Eleven layers: frame, art window, art with a drop shadow, an overlay glow under a soft mask, title, rarity dot, type bar and rules text. Files: D:/m4bwa/Claude/Projects/Ai/photowright-jobs/2-composite/out/card.png, card.psd and card.ora (the recipe is card.json beside them). Both layered files flatten back to the PNG within 1/255. Text layers are pixels in the PSD and ORA, not editable text.",
+      "why": "A keep makes this the template for card mock-ups from the game's docs; a redo note on layout or type changes the template.",
+      "look_for": [
+        "Does it read as a game card at a glance?",
+        "Title and rules text: size and font right?",
+        "Open card.psd in Photopea or GIMP if you want to check the layers."
+      ],
+      "media": [
+        {
+          "src": "j2_card.png",
+          "alt": "Card art source and the finished card mock"
+        }
+      ],
+      "options": [
+        {
+          "id": "keep",
+          "label": "Keep the card mock and use it as the template"
+        },
+        {
+          "id": "redo-layout",
+          "label": "Redo the layout (see my note)"
+        },
+        {
+          "id": "redo-style",
+          "label": "Redo the colours or fonts (see my note)"
+        }
+      ],
+      "guess": {
+        "option": "keep",
+        "why": "Layout, text and layers all came out clean on the first pass.",
+        "confidence": "low"
+      },
+      "created": "2026-11-17T08:59:50-06:00",
+      "updated": "2026-11-17T08:59:50-06:00"
+    },
+    {
+      "id": "j3-batch",
+      "kind": "choice",
+      "title": "Batch: Arvum animal sprites x2",
+      "question": "Keep the x2 batch of the 12 Arvum animal sprite sheets, or redo it?",
+      "background": "Source copies of D:/Desktop/Create With Code Mark/ArvumElectrum/Assets/Art/Animals/Outline/*.png (12 sheets) in D:/m4bwa/Claude/Projects/Ai/photowright-jobs/3-batch/src/animals. Recipe normalise.json: resize x2 nearest, embed sRGB, strip metadata; dry run first, then applied to D:/m4bwa/Claude/Projects/Ai/photowright-jobs/3-batch/out/animals_x2. Checked: every visible pixel identical to its source, every 2x2 block uniform, colour counts unchanged; 26 fully transparent pixels in MiniBear and MiniFox lost their hidden RGB (invisible). This run found a bug: the first batch stretched every sheet to the Cow's size; fixed in the PR.",
+      "why": "A keep means x2 nearest is the right normalisation for Arvum sprite folders; a redo note names the size or format you want instead.",
+      "look_for": [
+        "Edges stay hard, no blur or new colours?",
+        "Sheets keep their own sizes (Chicken is wider than Fox)?"
+      ],
+      "media": [
+        {
+          "src": "j3_batch.png",
+          "alt": "MiniFox and MiniChicken sheets before and after x2"
+        }
+      ],
+      "options": [
+        {
+          "id": "keep",
+          "label": "Keep the x2 batch"
+        },
+        {
+          "id": "redo-size",
+          "label": "Redo at another scale or size (see my note)"
+        },
+        {
+          "id": "not-useful",
+          "label": "Not a useful normalisation for this folder"
+        }
+      ],
+      "guess": {
+        "option": "keep",
+        "why": "It is pixel exact and proven by the checks.",
+        "confidence": "high"
+      },
+      "created": "2026-11-17T08:59:50-06:00",
+      "updated": "2026-11-17T08:59:50-06:00"
+    },
+    {
+      "id": "j4a-electrum",
+      "kind": "choice",
+      "title": "Trace: Electrum icon, pixel exact",
+      "question": "Keep the pixel-exact SVG of the 24 px Electrum icon, or redo it?",
+      "background": "Source: D:/Desktop/Create With Code Mark/ArvumElectrum/Assets/Art/Icons/Electrum.png (24x24), traced to D:/m4bwa/Claude/Projects/Ai/photowright-jobs/4-trace/out/electrum_pixel_v2.svg. Render-back overlap 1.000 (every pixel matches). It misses the pixel-art budgets (461 colours, 465 paths) because the icon is a downscaled painting, not palette pixel art. The first try scored 0.91 because soft-edge pixels were traced opaque; fixed (fill-opacity).",
+      "why": "A keep means exact squares are wanted even for painted icons; 'reduce colours first' means pixelwright should palette-lock icons before a trace.",
+      "look_for": [
+        "Left and right should look identical at x10.",
+        "Is a 461-colour SVG useful to you, or should it be reduced to a small palette first?"
+      ],
+      "media": [
+        {
+          "src": "j4a_electrum.png",
+          "alt": "Electrum icon source and traced SVG at x10"
+        }
+      ],
+      "options": [
+        {
+          "id": "keep",
+          "label": "Keep the exact SVG"
+        },
+        {
+          "id": "reduce",
+          "label": "Redo with the colours reduced to a small palette first"
+        },
+        {
+          "id": "not-useful",
+          "label": "No use for a vector of this icon"
+        }
+      ],
+      "guess": {
+        "option": "reduce",
+        "why": "461 colours in 24x24 is a heavy SVG; a 16-colour version would be lighter and still read the same.",
+        "confidence": "low"
+      },
+      "created": "2026-11-17T08:59:50-06:00",
+      "updated": "2026-11-17T08:59:50-06:00"
+    },
+    {
+      "id": "j4b-emblem",
+      "kind": "choice",
+      "title": "Trace: Arvum sun emblem for laser",
+      "question": "Keep the sun emblem DXF for laser engraving, or redo it?",
+      "background": "Source: D:/Desktop/Create With Code Mark/ArvumElectrum/Assets/Art/Icons/AppIcon.png (the gold and silver coin). A high-pass threshold made a black and white engrave mask (stains under 120 px dropped, rim circle added; script prep_emblem.py), traced with the own tracer: 570 nodes, overlap 0.988 against the mask, no open paths or crossings. Exported 100 mm wide as D:/m4bwa/Claude/Projects/Ai/photowright-jobs/4-trace/out/emblem_100mm_cut.dxf (closed polylines only, white background left out; Inkscape opens it) plus SVG and PDF. The mask, not the trace, is the weak part: some stains remain and the dotted ring is mostly lost.",
+      "why": "A keep means it is ready to try on the cutter; a redo means I clean the mask by hand rules (redraw rays and dot ring as geometry) before tracing.",
+      "look_for": [
+        "The rays: clean enough to engrave?",
+        "The leftover blobs near the rim and bottom: acceptable or must go?",
+        "The dotted ring of the coin is missing: do you want it back?"
+      ],
+      "media": [
+        {
+          "src": "j4b_emblem.png",
+          "alt": "App icon, the engrave mask and the traced cut shapes"
+        }
+      ],
+      "options": [
+        {
+          "id": "keep",
+          "label": "Keep it and try it on the laser"
+        },
+        {
+          "id": "clean",
+          "label": "Redo with a cleaner mask (blobs gone, dot ring back)"
+        },
+        {
+          "id": "geometric",
+          "label": "Redo as drawn geometry instead of a trace"
+        }
+      ],
+      "guess": {
+        "option": "clean",
+        "why": "The trace is faithful, but the stains would engrave as marks.",
+        "confidence": "high"
+      },
+      "created": "2026-11-17T08:59:50-06:00",
+      "updated": "2026-11-17T08:59:50-06:00"
+    },
+    {
+      "id": "j4b-tracer",
+      "kind": "compare",
+      "title": "Emblem: which tracer",
+      "question": "Which trace of the same emblem mask should the laser route use by default?",
+      "background": "Both traced D:/m4bwa/Claude/Projects/Ai/photowright-jobs/4-trace/out/emblem_bw.png. Left: VTracer (MIT), 1082 nodes, 35 paths, overlap 0.982. Right: the own region tracer at tolerance 1.0, 570 nodes, 2 paths, overlap 0.988. Fewer nodes cut faster and smoother.",
+      "why": "Sets the default backend for logo and emblem traces bound for a cutter.",
+      "look_for": [
+        "Ray tips and the rim: which is smoother?",
+        "Small blobs: which keeps them cleaner?"
+      ],
+      "media": [
+        {
+          "src": "emblem_vtracer.png",
+          "alt": "VTracer trace"
+        },
+        {
+          "src": "emblem_own.png",
+          "alt": "Own tracer trace"
+        }
+      ],
+      "sides": {
+        "left": "vtracer",
+        "right": "own",
+        "randomized": false
+      },
+      "options": [
+        {
+          "id": "vtracer",
+          "label": "VTracer"
+        },
+        {
+          "id": "own",
+          "label": "Own region tracer"
+        },
+        {
+          "id": "same",
+          "label": "Both meet the request"
+        }
+      ],
+      "guess": {
+        "option": "own",
+        "why": "Half the nodes and a slightly higher overlap.",
+        "confidence": "low"
+      },
+      "created": "2026-11-17T08:59:50-06:00",
+      "updated": "2026-11-17T08:59:50-06:00"
+    }
+  ],
+  "created": "2026-11-17T08:58:51-06:00",
+  "updated": "2026-11-17T08:59:50-06:00",
+  "project": {
+    "name": "photowright",
+    "path": "D:/m4bwa/Claude/Projects/Ai/photowright"
+  }
+}
