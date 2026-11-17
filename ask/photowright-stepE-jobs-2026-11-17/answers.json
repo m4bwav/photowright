@@ -1,0 +1,78 @@
+{
+  "askwright": 1,
+  "rev": 7,
+  "answers": {
+    "j1-retouch": {
+      "choice": "keep",
+      "note": "",
+      "attachments": [],
+      "timecodes": [],
+      "guess_revealed": true,
+      "guess_revealed_before_pick": true,
+      "q_rev": 1,
+      "rev": 2,
+      "updated": "2026-11-17T16:02:56-06:00",
+      "state": "answered"
+    },
+    "j2-card": {
+      "choice": "keep",
+      "note": "",
+      "attachments": [],
+      "timecodes": [],
+      "guess_revealed": false,
+      "guess_revealed_before_pick": false,
+      "q_rev": 1,
+      "rev": 3,
+      "updated": "2026-11-17T16:03:08-06:00",
+      "state": "answered"
+    },
+    "j3-batch": {
+      "choice": "keep",
+      "note": "",
+      "attachments": [],
+      "timecodes": [],
+      "guess_revealed": false,
+      "guess_revealed_before_pick": false,
+      "q_rev": 1,
+      "rev": 4,
+      "updated": "2026-11-17T16:03:13-06:00",
+      "state": "answered"
+    },
+    "j4a-electrum": {
+      "choice": "keep",
+      "note": "",
+      "attachments": [],
+      "timecodes": [],
+      "guess_revealed": false,
+      "guess_revealed_before_pick": false,
+      "q_rev": 1,
+      "rev": 5,
+      "updated": "2026-11-17T16:03:17-06:00",
+      "state": "answered"
+    },
+    "j4b-emblem": {
+      "choice": "keep",
+      "note": "",
+      "attachments": [],
+      "timecodes": [],
+      "guess_revealed": false,
+      "guess_revealed_before_pick": false,
+      "q_rev": 1,
+      "rev": 6,
+      "updated": "2026-11-17T16:03:20-06:00",
+      "state": "answered"
+    },
+    "j4b-tracer": {
+      "choice": "same",
+      "note": "",
+      "attachments": [],
+      "timecodes": [],
+      "guess_revealed": false,
+      "guess_revealed_before_pick": false,
+      "q_rev": 1,
+      "rev": 7,
+      "updated": "2026-11-17T16:03:50-06:00",
+      "state": "answered"
+    }
+  }
+}
