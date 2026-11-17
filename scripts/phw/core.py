@@ -40,7 +40,7 @@ try:
 except Exception:  # pragma: no cover - Pillow built without LittleCMS
     ImageCms = None
 
-VERSION = "0.4.1"
+VERSION = "0.5.0"
 ROOT = Path(__file__).resolve().parent.parent.parent
 
 # Hooks filled by the other modules of the package (masks, compose, layered).
@@ -376,6 +376,7 @@ def save(img, path, bits=None, used=None, quality=95):
         kw.update(quality=quality, subsampling="4:4:4")
     if fmt == "WEBP":
         kw.update(lossless=True, exact=True)
+    Path(path).parent.mkdir(parents=True, exist_ok=True)
     with open(path, "xb") as f:
         try:
             im.save(f, fmt, **kw)

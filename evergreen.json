@@ -1,0 +1,59 @@
+{
+  "evergreen": "1.0",
+  "name": "photowright",
+  "kind": "plugin",
+  "main": "skills/photowright/SKILL.md",
+  "files": {
+    "research": "RESEARCH.md",
+    "changelog": "CHANGELOG.md",
+    "learnings": "LEARNINGS.md",
+    "tests": "TESTS.md"
+  },
+  "protocol": "plugin",
+  "source": null,
+  "topic": "image editing tools (Photoshop features and free equivalents), matting and restore models, raster-to-vector tracers, vector and layered file formats",
+  "tier": "moderate",
+  "interval_days": 30,
+  "last_checked": "2026-11-17",
+  "next_due": "2026-12-17",
+  "verify_at_use": false,
+  "volatile_claims": [],
+  "contradiction": null,
+  "events": [],
+  "streak": {
+    "quiet": 0,
+    "pinned_min": 0,
+    "pinned_max": 0,
+    "vau_quiet": 0
+  },
+  "history": [
+    {
+      "date": "2026-11-17",
+      "m": null,
+      "interval_after": 30,
+      "note": "created"
+    }
+  ],
+  "counts": {
+    "learnings": 0,
+    "changes": 1,
+    "research": 13,
+    "tests": 1
+  },
+  "consolidate_every": 25,
+  "tests": {
+    "last_run": "2026-11-17T12:00",
+    "harness": "claude -p --plugin-dir (sonnet), evals/run.py",
+    "env": "windows",
+    "cases": 15,
+    "passed": 12,
+    "failed": 3,
+    "failing": [
+      "trigger-remove-object",
+      "trigger-psd",
+      "trigger-dxf"
+    ],
+    "last_failure": "T-20261117-1",
+    "research_after_days": null
+  }
+}
