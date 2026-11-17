@@ -1,0 +1,84 @@
+{
+  "askwright": 1,
+  "rev": 13,
+  "answers": {
+    "name": {
+      "choice": "photowright",
+      "note": "",
+      "attachments": [],
+      "timecodes": [],
+      "guess_revealed": false,
+      "guess_revealed_before_pick": false,
+      "q_rev": 1,
+      "rev": 1,
+      "updated": "2026-11-17T07:41:44-06:00",
+      "state": "answered"
+    },
+    "repo": {
+      "choice": "at-release",
+      "note": "",
+      "attachments": [],
+      "timecodes": [],
+      "guess_revealed": false,
+      "guess_revealed_before_pick": false,
+      "q_rev": 1,
+      "rev": 2,
+      "updated": "2026-11-17T07:42:03-06:00",
+      "state": "answered"
+    },
+    "bridge": {
+      "choice": "later",
+      "note": "",
+      "attachments": [],
+      "timecodes": [],
+      "guess_revealed": false,
+      "guess_revealed_before_pick": false,
+      "q_rev": 1,
+      "rev": 3,
+      "updated": "2026-11-17T07:42:10-06:00",
+      "state": "answered"
+    },
+    "psversion": {
+      "text": "none, nor will i have one",
+      "note": "",
+      "attachments": [],
+      "timecodes": [],
+      "guess_revealed": false,
+      "guess_revealed_before_pick": false,
+      "q_rev": 1,
+      "rev": 7,
+      "updated": "2026-11-17T07:42:21-06:00",
+      "state": "answered"
+    },
+    "first": {
+      "choices": [
+        "arvum",
+        "spacedeck",
+        "print",
+        "films",
+        "site"
+      ],
+      "note": "",
+      "attachments": [],
+      "timecodes": [],
+      "guess_revealed": false,
+      "guess_revealed_before_pick": false,
+      "q_rev": 1,
+      "rev": 12,
+      "updated": "2026-11-17T07:42:36-06:00",
+      "state": "answered"
+    },
+    "installs": {
+      "choice": "all",
+      "note": "",
+      "attachments": [],
+      "timecodes": [],
+      "guess_revealed": false,
+      "guess_revealed_before_pick": false,
+      "q_rev": 1,
+      "rev": 13,
+      "updated": "2026-11-17T07:42:41-06:00",
+      "state": "answered"
+    }
+  }
+}

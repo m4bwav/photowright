@@ -1,0 +1,199 @@
+{
+  "askwright": 1,
+  "id": "photowright-setup-2026-11-17",
+  "title": "photowright: name, repo, Photoshop bridge, first projects",
+  "context": "",
+  "asked_by": "photowright build session",
+  "product": "Claude Code",
+  "session": "",
+  "working_dir": "D:\\m4bwa\\Claude\\Projects\\Ai\\photowright",
+  "media_roots": [],
+  "questions": [
+    {
+      "id": "name",
+      "kind": "choice",
+      "title": "Plugin name",
+      "question": "Which name should the image editing and vectorizing plugin ship under?",
+      "background": "The plugin does Photoshop-like edits and traces images to vectors from the command line. The working name is photowright; rasterwright was the other candidate.",
+      "why": "The name goes into the repo, the skill names and the script docs, and changing it after release is costly.",
+      "options": [
+        {
+          "id": "rasterwright",
+          "label": "rasterwright"
+        },
+        {
+          "id": "photowright",
+          "label": "photowright"
+        }
+      ],
+      "guess": {
+        "option": "photowright",
+        "why": "Says what people will ask for (photo edits); vectorizing still fits under it.",
+        "confidence": "high"
+      },
+      "created": "2026-11-17T07:30:56-06:00",
+      "updated": "2026-11-17T07:43:29-06:00",
+      "status": "closed"
+    },
+    {
+      "id": "repo",
+      "kind": "choice",
+      "title": "Public or private",
+      "question": "When should the photowright repository become public?",
+      "background": "It is private now at m4bwav/photowright, like most new plugins before their first release.",
+      "why": "Public repos get a wiki, banner and directory-style release; private ones build on the local runner.",
+      "options": [
+        {
+          "id": "private",
+          "label": "Keep it private"
+        },
+        {
+          "id": "now",
+          "label": "Make it public now"
+        },
+        {
+          "id": "at-release",
+          "label": "Make it public at the first release"
+        }
+      ],
+      "guess": {
+        "option": "at-release",
+        "why": "Same path as mapwright and fractalwright.",
+        "confidence": "high"
+      },
+      "created": "2026-11-17T07:30:56-06:00",
+      "updated": "2026-11-17T07:43:29-06:00",
+      "status": "closed"
+    },
+    {
+      "id": "bridge",
+      "kind": "choice",
+      "title": "Photoshop bridge",
+      "question": "Should photowright include an optional Photoshop bridge at all?",
+      "background": "Everything is built on free tools and the plugin's own code first. A bridge would hand a recipe to Photoshop through its scripting interface when it is installed. It would be off by default, and no feature would depend on it.",
+      "why": "If no, the bridge step is dropped and the release comes sooner.",
+      "options": [
+        {
+          "id": "later",
+          "label": "Yes, but build it last"
+        },
+        {
+          "id": "no",
+          "label": "No bridge"
+        },
+        {
+          "id": "soon",
+          "label": "Yes, early: I use Photoshop often"
+        }
+      ],
+      "guess": {
+        "option": "later",
+        "why": "You said Photoshop is optional; building it last keeps the free path complete first.",
+        "confidence": "low"
+      },
+      "created": "2026-11-17T07:30:56-06:00",
+      "updated": "2026-11-17T07:43:29-06:00",
+      "status": "closed"
+    },
+    {
+      "id": "psversion",
+      "kind": "text",
+      "title": "Photoshop version",
+      "question": "Which Photoshop version do you have installed, if any?",
+      "background": "The bridge works differently for each version (UXP, ExtendScript or COM on Windows).",
+      "why": "It picks the bridge route.",
+      "show_if": {
+        "question": "bridge",
+        "option": [
+          "later",
+          "soon"
+        ]
+      },
+      "guess": {
+        "text": "None installed on this PC",
+        "why": "No Photoshop install was found here.",
+        "confidence": "low"
+      },
+      "created": "2026-11-17T07:30:56-06:00",
+      "updated": "2026-11-17T07:43:29-06:00",
+      "status": "closed"
+    },
+    {
+      "id": "first",
+      "kind": "multi",
+      "title": "First real jobs",
+      "question": "Which of your projects should the first real test jobs come from?",
+      "background": "Before release, the plugin does four real jobs: a photo retouch, a layered composite, a batch over a folder, and a trace to a clean vector.",
+      "why": "These jobs become the acceptance tests, so they should be work you would keep.",
+      "options": [
+        {
+          "id": "arvum",
+          "label": "Arvum Electrum sprites and art"
+        },
+        {
+          "id": "spacedeck",
+          "label": "SpaceDeckBuilder2 cards"
+        },
+        {
+          "id": "print",
+          "label": "3D print and laser designs (polywright)"
+        },
+        {
+          "id": "films",
+          "label": "Stills from the AI films"
+        },
+        {
+          "id": "site",
+          "label": "markdavidrogers.com images"
+        }
+      ],
+      "guess": {
+        "options": [
+          "arvum",
+          "spacedeck"
+        ],
+        "why": "Both have lots of game art that needs traces and batch edits.",
+        "confidence": "low"
+      },
+      "created": "2026-11-17T07:30:56-06:00",
+      "updated": "2026-11-17T07:43:29-06:00",
+      "status": "closed"
+    },
+    {
+      "id": "installs",
+      "kind": "choice",
+      "title": "Install desktop tools",
+      "question": "May the session install Potrace, Inkscape and GIMP to compare against and to check layered files?",
+      "background": "Today only VTracer (pip, MIT) and the plugin's own tracers were measured. To check that a written PSD opens correctly, the file has to be opened in GIMP or Krita.",
+      "why": "If yes, the layered-file checks and the Potrace comparison run for real. If no, they are skipped and marked unverified.",
+      "options": [
+        {
+          "id": "all",
+          "label": "Install all three"
+        },
+        {
+          "id": "inkscape-gimp",
+          "label": "Only Inkscape and GIMP"
+        },
+        {
+          "id": "none",
+          "label": "Install nothing"
+        }
+      ],
+      "guess": {
+        "option": "all",
+        "why": "All three are free and open source, and the proof bars need GIMP or Krita.",
+        "confidence": "low"
+      },
+      "created": "2026-11-17T07:30:56-06:00",
+      "updated": "2026-11-17T07:43:29-06:00",
+      "status": "closed"
+    }
+  ],
+  "created": "2026-11-17T07:30:55-06:00",
+  "updated": "2026-11-17T07:43:29-06:00",
+  "project": {
+    "name": "photowright",
+    "path": "D:/m4bwa/Claude/Projects/Ai/photowright"
+  }
+}
