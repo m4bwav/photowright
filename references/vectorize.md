@@ -68,3 +68,4 @@ Verdict: classic tracers win for cutter and laser files; AI is for "redraw as a 
 ## Installed here (checked 2026-11-16, Windows)
 
 potrace: no. vtracer CLI: no; `import vtracer`: no (wheel downloadable). autotrace: no. inkscape: no (not on PATH).
+Update 2026-11-17: vtracer 0.6.15 pip-installed; Inkscape 1.4.4 at C:/Program Files/Inkscape/bin/inkscape.com (not on PATH); its CLI action `object-trace:{scans},{smooth},{stack},{remove_background},{speckles},{smooth_corners},{optimize}` traces from the command line (phw trace --backend inkscape). Measured results of the built tracers: ai-docs/log.md, 2026-11-17 batch 4.

@@ -1,6 +1,6 @@
 # HANDOFF: photowright
 
-Status: Step D batch 3 merged (heal, clone, fill, remove, restore in scripts/phw/retouch.py; warp, perspective, upscale, stitch, stack in scripts/phw/transform.py) on top of batches 1-2; 75 tests pass normally and with PHW_RUNG_MAX=1. Next: batch 4 (run/batch/sheet/diff, then trace/simplify/vcheck/export). Repo private m4bwav/photowright (main).
+Status: Step D batch 4 merged (phw 0.4.0): batch, sheet, diff in scripts/phw/batchops.py; trace (all six kinds), simplify, vcheck, export (SVG/PDF/EPS/DXF) in scripts/phw/vtrace.py and vector.py, on top of batches 1-3. 97 tests pass normally and with PHW_RUNG_MAX=1. Every vector bar is met at both rungs (numbers in the log, 2026-11-17 batch 4). Next: Step E first real jobs, then Step F; the bridge to free editors is built last (Mark). Repo private m4bwav/photowright (main).
 
 Continue prompt: [plans/photowright-continue-prompt.md](plans/photowright-continue-prompt.md)
 
@@ -21,9 +21,11 @@ Continue prompt: [plans/photowright-continue-prompt.md](plans/photowright-contin
 ## Next
 
 1. Step G: Szeliski 2nd ed. is free online; a reader subagent distills it (BUILD-BRIEF). The rest of ai-docs/notes/books.md are leads.
-2. Step D batch 4 in a worktree: `run` (exists for single-image recipes; extend to stack/stitch recipes, which store `others` as absolute paths), `batch` (recipe over a folder, dry run first, never overwrite, second run changes nothing), `sheet`, `diff`; then `trace`, `simplify`, `vcheck`, `export`. Batch 3 notes: fill --method lama and upscale --method realesrgan are stubs naming the comfyui-gen route; stitch refuses at rung 1; seam carving left out (patent flag). OpenCV Stitcher fails on some synthetic scenes (status 1) and once asserted inside OpenCV 5.0; seamlessClone needs the region grown 3 px (a full-box mask changes almost nothing). Trace: reuse the bake-off rasterizer and pixel-exact tracer from ai-docs/notes/bakeoff/bakeoff_trace.py; run vtracer in a subprocess. GIMP 3 batch binary: %LOCALAPPDATA%/Programs/GIMP 3/bin/gimp-console-3.exe (core.gimp_console() finds it; layered.gimp_layers() lists what GIMP reads). cutout --method birefnet is a stub naming the comfyui-gen route.
-3. Own region tracer with holes (bar: overlap 0.95 or more on logo and icon) before it is used as the fallback.
-4. First everscout scan of image-editing (everscout-scan) when convenient.
+2. Step E: first real jobs, one per kind from Mark's five projects (Arvum sprites, SpaceDeckBuilder2 cards, polywright print/laser, AI film stills, markdavidrogers.com images): a photo retouch, a layered composite, a batch over a folder (phw batch, dry run first), a trace to a clean vector (phw trace + vcheck + export, DXF for laser). Each goes through the bars, then to Mark on an askwright page. Whatever fails becomes a test.
+   Batch 4 notes: VTracer always runs in a subprocess and a crash falls back to the own region tracer (rung 1), which beats VTracer on logo, icon and line art with fewer nodes. The own photo trace clears 0.80 by a thin margin (0.804, k=32). Node budgets are 2x the TRUE VTracer counts (the bake-off regex inflated them). EPS is structure-tested only (Inkscape needs Ghostscript). Potrace is still not installed (backend refuses with the link). `run` was not extended to stack/stitch recipes (they store `others` as absolute paths and replay through apply_steps already, untested).
+3. Step F: hub skill (photowright; siblings -edit and -vectorize only if trigger evals show the need), evals with a no-skill baseline and decoys (critique, pixel art, brand work, generation), worth check, README with banner, SECURITY.md, wiki, public repo, release and install.
+4. Last (Mark's ruling): `bridge` to free editors (GIMP batch, Krita, Photopea); the Photoshop route is documentation only.
+5. First everscout scan of image-editing (everscout-scan) when convenient.
 Beat image-editing: built 2026-11-17 at Ai/indie-ai-scout/beats/image-editing (32 sources, 58 entities, 22 questions, 10 books). Owner items there: study outline approval, 4 candidate metrics, engagement (off). Not scanned yet.
 
 ## Szeliski book
