@@ -5,7 +5,7 @@ From the image-editing beat's literature list (D:/m4bwa/Claude/Projects/Ai/indie
 | Title | Author | Status |
 |---|---|---|
 | Digital Image Processing | Gonzalez, Woods | lead |
-| Computer Vision: Algorithms and Applications | Szeliski | lead (2nd ed. free PDF at szeliski.org; fetch and read) | Status: waits on Mark (download form needs his name and email; save PDF to Ai/technique-harvest/books-cache/szeliski).
+| Computer Vision: Algorithms and Applications | Szeliski | read 2026-11-17 (PDF in Ai/technique-harvest/books-cache/szeliski, personal use); distilled in [szeliski.md](szeliski.md), 10 proposals waiting |
 | Professional Photoshop: The Classic Guide to Color Correction | Margulis | lead |
 | Real World Color Management | Fraser, Murphy, Bunting | lead |
 | Interaction of Color | Albers | lead |
