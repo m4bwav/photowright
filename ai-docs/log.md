@@ -108,3 +108,4 @@
 - 2026-11-18 session 44: decompose on a real image gave layers [1,1,1,0] (opaque layer hides the rest, last empty), 32.6 dB, 212/209 s cold/warm; v0.25.1 adds split_warnings (PR #53, tag v0.25.1); wiki Versions/Home/Footer bumped; plugin-backlog line says v0.25.1.
 
 - 2026-11-18 session 45: decompose on a public-domain NPS photo (bison and Roosevelt Arch, 864x576, seed 7): no prompt [1,.057,.023,.054] 27.9 dB 215 s; caption [1,.063,.018,.053] 28.2 dB 224 s. Bison split cleanly both ways, arch never split; caption does not help (notes/bakeoff/decompose-photo-2026-11-18.md). SKILL.md decompose line says so.
+- 2026-11-18 session 45: decompose photo test (PR #55, caption no help); beat scan 2 (indie-ai-scout #71); beat findings into LEARNINGS; next Moebius vs lama, VTracer alpha.4 wrapper check.
