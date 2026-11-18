@@ -6,6 +6,11 @@ Entry shape: `### C-YYYYMMDD-n · date · one-line summary`, then `because:`, `f
 
 ## Unreleased
 
+### C-20261117-9 · 2026-11-17 · 0.8.0: bridge to free editors (GIMP run and compare, Krita, Photopea/Photoshop scripts)
+because: Mark's ruling (bridge last, free editors, Photoshop documentation only); measured GIMP 3 reading ORA layers in linear light (mean 8.9, max 60 of 255 off).
+files: scripts/phw/bridge.py, tests/test_phw7.py, skills/photowright/SKILL.md.
+New `bridge` command; GIMP script forces the blend space so its flatten matches phw within 0.4/255 for ORA and PSD in both spaces.
+
 ### C-20261118-4 · 2026-11-18 · 0.7.2: stack/stitch recipes replay after the job folder moves
 - because: HANDOFF batch 4 note "`run` was not extended to stack/stitch recipes (they store `others` as absolute paths ... untested)"; design.md says a recipe folder replays to the same pixels
 - files: scripts/phw/core.py, scripts/phw/transform.py, tests/test_phw6.py, .claude-plugin/plugin.json
