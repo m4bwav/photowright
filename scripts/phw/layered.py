@@ -785,6 +785,19 @@ def decompose(rgb, p, used, notes):
     return doc
 
 
+def split_warnings(cover):
+    """Name layers a split wasted: those under a fully opaque layer, and empty ones (1-based, bottom first)."""
+    w = []
+    top = max((i for i, c in enumerate(cover) if c >= 0.99), default=0)
+    if top > 0:
+        w.append(f"layer {top + 1} is opaque and hides layers {', '.join(str(i + 1) for i in range(top))}: "
+                 "the split did not separate this image; try --prompt, another --seed or --method colour")
+    empty = [str(i + 1) for i, c in enumerate(cover) if c < 0.001]
+    if empty:
+        w.append(f"layers {', '.join(empty)} empty: ask for fewer --layers")
+    return w
+
+
 def cmd_decompose(a):
     t0 = time.time()
     used = Used()
@@ -798,6 +811,7 @@ def cmd_decompose(a):
     doc = decompose(rgb, p, used, notes)
     flat = composite_doc(doc)
     cover = [round(float((l.px[..., 3] > 0.5).mean()), 4) for l in doc.layers]
+    doc.notes.extend(split_warnings(cover))
     out = Path(a.output)
     r = {"command": "decompose", "input": str(a.input), "params": p, "layers": len(doc.layers),
          "alpha_coverage": cover, "recomposite_psnr": psnr(flat[..., :3] * flat[..., 3:], rgb),

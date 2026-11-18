@@ -12,6 +12,11 @@ Nothing yet.
 
 Every entry below is in a tagged release; the version is in each heading.
 
+### C-20261118-22 · 2026-11-18 · 0.25.1: decompose names a split that did not separate
+because: the first real-image run (864x480 game still, Qwen-Image-Layered, 4 layers, seed 7) came back with alpha coverage [1, 1, 1, 0] and recomposite 32.6 dB: layer 3 opaque over layers 1-2 and layer 4 empty, with no warning. Cold 212 s, warm 209 s: sampling, not model load, is the cost.
+files: scripts/phw/layered.py (split_warnings), tests/test_phw22.py (SplitWarnings).
+decompose now adds a note naming layers hidden under an opaque layer and empty layers, with the fixes to try.
+
 ### C-20261118-21 · 2026-11-18 · 0.25.0: decompose an image into RGBA layers (Qwen-Image-Layered, rung 3)
 because: references/comfyui-nodes.md listed Qwen-Image-Layered (core, Apache-2.0) as installed on 8199 but not wired.
 files: scripts/phw/comfy.py, scripts/phw/layered.py, scripts/phw/core.py, tests/test_phw22.py, skills/photowright/SKILL.md, references/comfyui-nodes.md, .claude-plugin/plugin.json
