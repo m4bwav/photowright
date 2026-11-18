@@ -134,3 +134,16 @@ class TestDecompose(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class SplitWarnings(unittest.TestCase):
+    """A real-image run (2026-11-18, 864x480 game still) gave layers covering [1, 1, 1, 0]:
+    an opaque layer above others hides them, and an empty layer is dead weight. Both are named."""
+
+    def test_hidden_and_empty_named(self):
+        w = layered.split_warnings([1.0, 1.0, 0.999, 0.0])
+        self.assertTrue(any("hides" in s and "1, 2" in s for s in w), w)
+        self.assertTrue(any("empty" in s and "4" in s for s in w), w)
+
+    def test_clean_split_silent(self):
+        self.assertEqual(layered.split_warnings([1.0, 0.4, 0.1]), [])
