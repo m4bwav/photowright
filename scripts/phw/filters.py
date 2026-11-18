@@ -192,8 +192,11 @@ def cmd_filter(a):
         steps.append({"op": "filter.rank", "params": {"kind": "minimum", "radius": a.minimum}})
     if a.offset:
         steps.append({"op": "filter.offset", "params": {"shift": [int(v) for v in floats(a.offset, 2)]}})
+    if getattr(a, "kernel", None):
+        steps.append({"op": "filter.kernel", "params": {"kernel": floats(a.kernel), "scale": a.kernel_scale,
+                                                        "offset": a.kernel_offset}})
     if not steps:
-        raise SystemExit("filter: give --blur, --high-pass, --maximum, --minimum or --offset")
+        raise SystemExit("filter: give --blur, --high-pass, --maximum, --minimum, --offset or --kernel")
     return core.edit_command(a, "filter", with_mask(a, steps))
 
 
@@ -228,6 +231,9 @@ def add_commands(sub, edit):
     p.add_argument("--maximum", type=int, help="grey dilation radius (square)")
     p.add_argument("--minimum", type=int, help="grey erosion radius (square)")
     p.add_argument("--offset", help="dx,dy wrap-around shift in px")
+    p.add_argument("--kernel", help="custom kernel: odd square count of numbers row by row, e.g. '0,-1,0;-1,5,-1;0,-1,0'")
+    p.add_argument("--kernel-scale", type=float, help="divide by this (default: kernel sum, or 1 when 0)")
+    p.add_argument("--kernel-offset", type=float, default=0.0, help="add this in 0..255 levels")
     p.add_argument("--mask", help="8-bit mask PNG: edit applies where white")
     p = edit("color", cmd_color, "invert, posterize, threshold, solarize, channel mixer, gradient map (rung 1)")
     p.add_argument("--invert", action="store_true")

@@ -31,7 +31,7 @@ Status: **BUILT 0.9.0** = built in this session (tests/test_phw8.py); gap = stil
 | Auto Tone / Contrast / Color | 1 | **BUILT 0.10.0** (full 0..255 range; auto color channel means within 2/255 of luma) | `adjust --auto` |
 | Camera Raw basic panel | 2 | gap | none planned |
 | Dehaze | 1 | **BUILT 0.11.0** `detail --dehaze` dark channel prior (synthetic haze RMS to truth < 40% of hazy) | `adjust` |
-| Clarity / Texture | 1 | **BUILT 0.11.0** Clarity `detail --clarity` (flat unchanged, spread x1.2); Texture gap | `adjust` |
+| Clarity / Texture | 1 | **BUILT 0.11.0** Clarity `detail --clarity` (flat unchanged, spread x1.2); **BUILT 0.13.0** Texture `fx --texture` (0 identity, flat unchanged, +0.8 raises adjacent-difference energy >1.3x, -1 lowers it <0.7x, mean within 1/255) | `adjust` |
 | Indexed colour / palette for web | 1 | partial (convert palette, trace quantise; no dither choice) | `convert` |
 | Blend If | 1 | gap | `layers` |
 | Gradient tool, fill layers (gradient, pattern) | 1 | gap | `layers` |
@@ -41,7 +41,7 @@ Status: **BUILT 0.9.0** = built in this session (tests/test_phw8.py); gap = stil
 | Auto-Blend Layers | 2 | partial (stack focus mode) | `stack` |
 | Auto-Align Layers | 2 | gap | `stack --align` |
 | Merge to HDR Pro | 2 | gap (exposure fusion only) | `stack` |
-| Apply Image / Calculations | 1 | gap | `layers` |
+| Apply Image / Calculations | 1 | **BUILT 0.13.0** `apply-image --source --channel --blend [--calc]` (normal == source exact, multiply by source luma == brute force within 1/255, opacity 0 identity, --calc grey) | `layers` |
 | Spot channels | 2 | gap | `save` |
 | Magnetic Lasso | 2 | gap | `select` |
 | Focus Area | 1 | gap (focus stack has the measure) | `select --focus` |
@@ -51,23 +51,23 @@ Status: **BUILT 0.9.0** = built in this session (tests/test_phw8.py); gap = stil
 | Dodge / Burn / Sponge | 1 | **BUILT 0.12.0** `tonebrush --mask` (highlights dodge moves bright 3x dark, 0/255 fixed; sponge chroma -40%, luma within 2/255) | `adjust --mask` route |
 | Blur / Sharpen / Smudge brushes, brush engine | 1 | gap (no strokes) | new `paint` |
 | Eraser / Magic Eraser / Paint Bucket | 1 | partial (cutout colour key, flood select) | `mask`/`select` |
-| Liquify | 1 | gap | `warp` |
+| Liquify | 1 | **BUILT 0.13.0** push `liquify --stroke` (strength 0 identity, flat unchanged, blob centroid moves >4 px along the stroke, far pixels exact) | `warp` |
 | Frequency separation | 1 | **BUILT 0.11.0** `detail --freq-sep --part low|high` (low+high-0.5 within 2/255) | `filter` |
-| Radial, Lens, Surface, Shape blur; Blur Gallery | 1 | partial: **BUILT 0.12.0** `blurfx --spin/--zoom` (rings/spokes kept, spoke spread halved) and `--surface R,T` (100-level step exact, noise std halved); Lens, Shape, Gallery gap | `filter` |
+| Radial, Lens, Surface, Shape blur; Blur Gallery | 1 | partial: **BUILT 0.12.0** `blurfx --spin/--zoom` (rings/spokes kept, spoke spread halved) and `--surface R,T` (100-level step exact, noise std halved); **BUILT 0.13.0** `lensblur --lens R --iris disc|hexagon --boost` (flat unchanged, dot spreads to disc/hexagon area within 15%, boost raises energy >1.5x) and `--shape-blur` (square == box blur within 1/255); Gallery gap | `filter` |
 | Smart Sharpen | 1 | **BUILT 0.11.0** `detail --smart-sharpen` Wiener (sigma 1.5 blur: RMS < 70% of blurred and below unsharp) | `sharpen` |
 | Shake Reduction | 2 | gap | `sharpen` |
 | Add Noise | 1 | **BUILT 0.10.0** (std within 5%, mean shift < 0.5/255, seeded) | `filter` |
 | Emboss, Find Edges, Trace Contour | 1 | **BUILT 0.10.0** Emboss + Find Edges (flat -> 128 / 255 exactly); **BUILT 0.12.0** Trace Contour (black pixels within 1.5 px of a disc's radius) | `filter` |
-| Diffuse, Wind, Extrude, Tiles; Oil Paint; Pixelate family | 1 | partial: **BUILT 0.11.0** Mosaic `pixelate --cell` (cell = source mean within 1/255); **BUILT 0.12.0** Crystallize (cell = source mean within 1/255), Color Halftone (flat grey mean within 10/255), Diffuse (3x3 neighbour, seeded), Wind (one-sided decaying trail), Oil Paint (Kuwahara: step two-valued, noise std halved); Extrude, Tiles, Pointillize gap | `filter` |
+| Diffuse, Wind, Extrude, Tiles; Oil Paint; Pixelate family | 1 | partial: **BUILT 0.11.0** Mosaic `pixelate --cell` (cell = source mean within 1/255); **BUILT 0.12.0** Crystallize (cell = source mean within 1/255), Color Halftone (flat grey mean within 10/255), Diffuse (3x3 neighbour, seeded), Wind (one-sided decaying trail), Oil Paint (Kuwahara: step two-valued, noise std halved); **BUILT 0.13.0** `fx --pointillize` (pixels are bg or cell means, flat -> 2 values, seeded), `--extrude` (depth 0 == block means within 1/255, flat -> colour and 0.6x only), `--tiles` (offset 0 identity, pixels from source or bg, seeded) | `filter` |
 | Distort family (Pinch, Twirl, Polar ...) | 1 | partial: **BUILT 0.11.0** `distort --pinch/--twirl/--polar` (outside circle within 1/255; polar rows->rings within 3/255); **BUILT 0.12.0** `warpfx` Wave/Ripple (line follows amp sin within 1 px), Spherize (disc +30%/-20%, corners within 1/255), ZigZag (rings within 3/255) | `warp` |
 | Adaptive Wide Angle | 2 | gap | `perspective` |
 | Lens Correction | 1 | **BUILT 0.12.0** `warpfx --lens k1,k2` (dot lands at the solved radius within 1 px) | `perspective` |
 | Vanishing Point | 1 | gap | `clone` |
-| Clouds / Fibers, Lens Flare / Lighting | 1 | partial: **BUILT 0.12.0** Clouds (seeded, between fg/bg, low-frequency energy > 4x high); rest gap | `filter` |
+| Clouds / Fibers, Lens Flare / Lighting | 1 | partial: **BUILT 0.12.0** Clouds (seeded, between fg/bg, low-frequency energy > 4x high); **BUILT 0.13.0** Lens Flare `fx --flare` (0 identity, output >= input, peak gain within 3 px of centre), Lighting `fx --light --light-kind point|spot --bump` (ambient 1 identity, point peaks at light and falls, outside spot cone = colour x ambient within 1/255, bump ridge lit on the light side); Fibers gap | `filter` |
 | Filter Gallery | 1 | gap | `filter` |
-| Custom kernel, De-Interlace, NTSC Colors | 1 | gap | `filter` |
+| Custom kernel, De-Interlace, NTSC Colors | 1 | partial: **BUILT 0.13.0** Custom `filter --kernel` (identity bit-exact, 3x3 ones == brute-force mean within 1/255, offset exact); De-Interlace, NTSC gap | `filter` |
 | Content Credentials (C2PA) | 2 | gap | `convert` |
-| Canvas Size, Trim / Reveal All | 1 | **BUILT 0.10.0** Canvas Size + Trim (pixels exact at anchor, trim(canvas(x)) == x); Reveal All gap | `crop` |
+| Canvas Size, Trim / Reveal All | 1 | **BUILT 0.10.0** Canvas Size + Trim (pixels exact at anchor, trim(canvas(x)) == x); **BUILT 0.13.0** Reveal All `canvas --reveal-all` on .psd/.ora/layers json (canvas = union of layer rects, old area of the flatten bit-exact, off-canvas layers fully shown) | `crop` |
 | Free Transform (skew) | 1 | **BUILT 0.11.0** `distort --skew X,Y` (line shift = H tan a within 1 px) | `perspective` |
 | Crop and Straighten Photos | 1 | partial (stitch --mode scans) | `stitch` |
 | Lens profile correction | 2 | gap | `perspective` |
@@ -83,4 +83,4 @@ Built in 0.11.0 (tests/test_phw10.py): Brightness/Contrast, Color Balance, Photo
 
 Built in 0.12.0 (tests/test_phw11.py): Wave/Ripple, Spherize, ZigZag, Lens Correction, Crystallize, Color Halftone, Trace Contour, Diffuse, Wind, Oil Paint, Clouds, Radial spin/zoom, Surface Blur, Dodge/Burn/Sponge (tonebrush over a mask).
 
-Next most valuable rung 1 builds (after 0.12.0): Texture (fine-scale clarity), Liquify (`warp` mesh exists), Apply Image/Calculations, Reveal All, Pointillize/Extrude/Tiles, Lens/Shape blur, Lens Flare/Lighting, Custom kernel, Variables (batch).
+Next most valuable rung 1 builds (after 0.13.0): Variables (batch with a CSV of text/image replacements), Blur Gallery (tilt-shift, field blur), Fibers, De-Interlace, NTSC Colors, Liquify extras (twirl, pucker/bloat brushes).
