@@ -452,6 +452,10 @@ def layers_from_specs(specs, base, w, h, used, notes):
                 px, x, y = rgba(img), int(L.get("x", 0)), int(L.get("y", 0))
             elif t == "fill":
                 px, x, y = paint(np.ones((h, w), np.float32), L.get("color", [1, 1, 1])), 0, 0
+            elif t in ("gradient", "pattern"):
+                from .fills import fill_layer_px
+                px, x, y = fill_layer_px(L, base, w, h), 0, 0
+                used.add("layers." + t, 1, "own NumPy fill layer")
             elif t == "text":
                 px, x, y = raster_text(L, w, h), 0, 0
                 used.add("text", 1, "Pillow ImageFont")

@@ -27,15 +27,15 @@ Status: **BUILT 0.9.0** = built in this session (tests/test_phw8.py); gap = stil
 | HDR Toning | 2 | gap | `adjust` |
 | Desaturate | 1 | **BUILT 0.11.0** `grade --desaturate` ((max+min)/2 within 0.5/255) | `adjust` |
 | Match Color / Color Transfer | 1 | **BUILT 0.10.0** (Lab mean within 1.5, self-match within 1/255) | `color --match` |
-| Replace Color | 1 | partial (`select` colour range + `adjust --hue --mask`; no single command) | `color` |
+| Replace Color | 1 | **BUILT 0.16.0** `replacecolor --pick x,y|--color --fuzziness --hue --saturation --lightness` (beyond fuzziness bit-exact, target hue turns within 1 deg, fuzziness 0 exact colour only) | `color` |
 | Auto Tone / Contrast / Color | 1 | **BUILT 0.10.0** (full 0..255 range; auto color channel means within 2/255 of luma) | `adjust --auto` |
 | Camera Raw basic panel | 2 | gap | none planned |
 | Dehaze | 1 | **BUILT 0.11.0** `detail --dehaze` dark channel prior (synthetic haze RMS to truth < 40% of hazy) | `adjust` |
 | Clarity / Texture | 1 | **BUILT 0.11.0** Clarity `detail --clarity` (flat unchanged, spread x1.2); **BUILT 0.13.0** Texture `fx --texture` (0 identity, flat unchanged, +0.8 raises adjacent-difference energy >1.3x, -1 lowers it <0.7x, mean within 1/255) | `adjust` |
 | Indexed colour / palette for web | 1 | partial (convert palette, trace quantise; no dither choice) | `convert` |
-| Blend If | 1 | gap | `layers` |
-| Gradient tool, fill layers (gradient, pattern) | 1 | gap | `layers` |
-| Inner Shadow, Outer/Inner Glow, Bevel, Satin, overlays | 1 | gap | `layers` |
+| Blend If | 1 | **BUILT 0.16.0** `blendif --layer --this b0,b1,w0,w1 --under ... --channel` (defaults == normal over bit-exact, underlying 128 split keeps base below exactly, split ramp half within 1/255) | `layers` |
+| Gradient tool, fill layers (gradient, pattern) | 1 | **BUILT 0.16.0** `gradient --kind linear|radial|angle|reflected|diamond --start --end --colors` and `pattern --tile --offset`; `layers` types `gradient`/`pattern` (linear == projection within 1/255, radial == distance, fill layer == command within 1/255, pattern bit-exact) | `layers` |
+| Inner Shadow, Outer/Inner Glow, Bevel, Satin, overlays | 1 | **BUILT 0.16.0** `layerstyle --color-overlay --gradient-overlay --inner-shadow --inner-glow --outer-glow --bevel` (overlay exact inside, alpha kept; outer glow leaves the layer bit-exact and falls off; bevel centre unchanged, lit edge brighter); Satin still a gap | `layers` |
 | Smart Objects / Smart Filters / linked | 1 | partial (layered recipe re-renders) | `layers` |
 | Artboards, Layer comps | 1 | gap | `layers` |
 | Auto-Blend Layers | 2 | partial (stack focus mode) | `stack` |
@@ -44,13 +44,13 @@ Status: **BUILT 0.9.0** = built in this session (tests/test_phw8.py); gap = stil
 | Apply Image / Calculations | 1 | **BUILT 0.13.0** `apply-image --source --channel --blend [--calc]` (normal == source exact, multiply by source luma == brute force within 1/255, opacity 0 identity, --calc grey) | `layers` |
 | Spot channels | 2 | gap | `save` |
 | Magnetic Lasso | 2 | gap | `select` |
-| Focus Area | 1 | gap (focus stack has the measure) | `select --focus` |
+| Focus Area | 1 | **BUILT 0.16.0** `focusarea --radius [--threshold] [--soft]` (Laplacian energy + Otsu, pulled back 2 sigma: sharp/blurred halves >95% right 4 px from the seam, sharp disc IoU > 0.75) | `select --focus` |
 | Quick Selection | 2 | partial (GrabCut in cutout) | `select` |
 | Spot Healing Brush | 2 | partial (`heal`) | `heal` |
 | Content-Aware Move / Extend | 2 | partial: **BUILT 0.15.0** Move `camove --rect x,y,w,h --to dx,dy --method` (block lands bit-exact, outside both rects bit-exact, vacated area on flat bg within 2/255, replay bit-exact); Extend still a gap | `fill` |
 | Dodge / Burn / Sponge | 1 | **BUILT 0.12.0** `tonebrush --mask` (highlights dodge moves bright 3x dark, 0/255 fixed; sponge chroma -40%, luma within 2/255) | `adjust --mask` route |
 | Blur / Sharpen / Smudge brushes, brush engine | 1 | **BUILT 0.15.0** `paint --tool blur|sharpen|smudge --stroke --radius --strength` (strength 0 identity, beyond radius bit-exact, blur halves noise std, sharpen HF energy >1.5x, smudge drags a blob centroid >2 px, flat unchanged); full brush engine still a gap | new `paint` |
-| Eraser / Magic Eraser / Paint Bucket | 1 | partial (cutout colour key, flood select) | `mask`/`select` |
+| Eraser / Magic Eraser / Paint Bucket | 1 | **BUILT 0.16.0** `erase --stroke|--magic x,y --tolerance [--all]`, `bucket --at --color --tolerance [--all]` (beyond radius bit-exact, stroke alpha 0, contiguous vs global regions exact, replay bit-exact) | `mask`/`select` |
 | Liquify | 1 | **BUILT 0.13.0** push `liquify --stroke` (strength 0 identity, flat unchanged, blob centroid moves >4 px along the stroke, far pixels exact); **BUILT 0.14.0** `--mode twirl|pucker|bloat` (outside radius bit-exact, flat unchanged, bloat disc area >1.3x, pucker <0.8x) | `warp` |
 | Frequency separation | 1 | **BUILT 0.11.0** `detail --freq-sep --part low|high` (low+high-0.5 within 2/255) | `filter` |
 | Radial, Lens, Surface, Shape blur; Blur Gallery | 1 | partial: **BUILT 0.12.0** `blurfx --spin/--zoom` (rings/spokes kept, spoke spread halved) and `--surface R,T` (100-level step exact, noise std halved); **BUILT 0.13.0** `lensblur --lens R --iris disc; **BUILT 0.15.0** `--iris CX,CY,RX,RY` (inside ellipse bit-exact, beyond ramp == Gaussian within 1/255) and `--path 'x,y ...' --length` (horizontal path == mean of shifts within 1/255, vertical stripes unchanged along a vertical path) |hexagon --boost` (flat unchanged, dot spreads to disc/hexagon area within 15%, boost raises energy >1.5x) and `--shape-blur` (square == box blur within 1/255); **BUILT 0.14.0** `blurgallery --tilt` (band bit-identical, beyond ramp == full Gaussian within 1/255) and `--field` (at a pin == that sigma's Gaussian within 1/255) | `filter` |
@@ -87,4 +87,6 @@ Built in 0.14.0 (tests/test_phw13.py): Variables, Tilt-Shift, Field Blur, Fibers
 
 Built in 0.15.0 (tests/test_phw14.py): Iris Blur, Path Blur, Filter Gallery, Blur/Sharpen/Smudge brushes, Content-Aware Move, Export Layers/Artboards, Crop and Straighten Photos.
 
-Next most valuable rung 1 builds (after 0.15.0): Gradient tool and fill layers, Layer styles (Inner/Outer Glow, Bevel, overlays), Blend If, Replace Color as one command, Focus Area select, Eraser/Magic Eraser/Paint Bucket, Content-Aware Extend, Vanishing Point.
+Built in 0.16.0 (tests/test_phw15.py): Gradient tool, gradient and pattern fill layers, Layer styles (colour/gradient overlay, inner shadow, inner/outer glow, bevel), Blend If, Replace Color, Focus Area, Eraser, Magic Eraser, Paint Bucket.
+
+Next most valuable rung 1 builds (after 0.16.0): Content-Aware Extend, Vanishing Point, Satin style, Indexed colour dither choice, Artboards/Layer comps, Generator assets, History snapshots.

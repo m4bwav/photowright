@@ -6,6 +6,11 @@ Entry shape: `### C-YYYYMMDD-n · date · one-line summary`, then `because:`, `f
 
 ## Unreleased
 
+### C-20261118-12 · 2026-11-18 · 0.16.0: `gradient`, `pattern`, fill layers, `layerstyle`, `blendif`, `replacecolor`, `focusarea`, `erase`, `bucket`
+because: the gap note's build-next list after 0.15.0 (ai-docs/notes/coverage-gaps-2026-11-17.md), rung 1 rows.
+files: scripts/phw/fills.py, scripts/phw/compose.py, scripts/phw/__init__.py, scripts/phw/core.py, tests/test_phw15.py, skills/photowright/SKILL.md, .claude-plugin/plugin.json.
+Gradient tool and gradient/pattern fill layers, layer styles (overlays, inner shadow, inner/outer glow, bevel), Blend If, Replace Color as one command, Focus Area select, Eraser, Magic Eraser and Paint Bucket, NumPy and Pillow only, each with a numeric proof in tests/test_phw15.py.
+
 ### C-20261118-11 · 2026-11-18 · 0.15.0: `blurgallery --iris/--path`, `filtergallery`, `paint`, `camove`, `export-layers`, `cropstraighten`
 because: the gap note's build-next list after 0.14.0 (ai-docs/notes/coverage-gaps-2026-11-17.md), rung 1 rows.
 files: scripts/phw/gallery.py, scripts/phw/toolbox.py, scripts/phw/__init__.py, scripts/phw/core.py, tests/test_phw14.py, skills/photowright/SKILL.md, .claude-plugin/plugin.json.
