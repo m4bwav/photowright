@@ -1,5 +1,7 @@
 # HANDOFF: photowright
 
+
+2026-11-18 (session 41): v0.24.0 released (PR #48, https://github.com/m4bwav/photowright/releases/tag/v0.24.0). Next: layers (layerdiffuse / Qwen-Image-Layered) wiring, rung 3, needs 8199 idle. Waiting on Mark: wiki first page (https://github.com/m4bwav/photowright/wiki/_new), everscout beat outline + 4 metrics.
 2026-11-18 (session 40): v0.24.0 `relight --keep-detail` built and live-checked (high-pass corr 0.965 vs 0.455). Next: layers (layerdiffuse / Qwen-Image-Layered) wiring, rung 3. Still waiting on Mark: wiki first page (https://github.com/m4bwav/photowright/wiki/_new), everscout beat outline + 4 metrics.
 
 2026-11-18 (session 39): live relight run PASSED on 8199 (notes/bakeoff/relight-live-2026-11-18.md; IC-Light invents detail, PSNR 15.5 dB). Next: `relight --keep-detail` (source high frequencies over relit lows), then layers (layerdiffuse) wiring, live SeedVR2/qwen-edit already measured. Still waiting on Mark: wiki first page (https://github.com/m4bwav/photowright/wiki/_new), everscout beat outline + 4 metrics.
