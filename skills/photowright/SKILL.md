@@ -21,6 +21,8 @@ Run `PHW doctor` once per machine. It lists what is installed and which rung eac
 3. Open-weight local models (matting, upscaling) when installed.
 4. Photoshop: optional, documentation only ([references/photoshop-bridge.md](../../references/photoshop-bridge.md)). Never required, never suggested as the first route.
 
+Hand-off to a person's editor: `phw.py bridge FILE --to gimp|krita|photopea|photoshop`. GIMP and Krita (rung 2) run with `--run` and GIMP's flatten is compared with phw's own (blend space forced to match: GIMP 3 opens ORA in linear light). Photopea and Photoshop get a script only; nothing is run or uploaded.
+
 Every result lists the rung and tool used for each step (`used`). Report it in one line ("rung 2: OpenCV GrabCut"). `--rung-max 1` (or `PHW_RUNG_MAX=1`) proves a job runs on own code alone. Never install a tool without asking; name it and its licence from [kb/tools.json](../../kb/tools.json).
 
 ## Step 1: which job
