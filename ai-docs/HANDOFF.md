@@ -1,5 +1,7 @@
 # HANDOFF: photowright
 
+2026-11-18 (main session, Mark: 'don't ask me'): Moebius weights PRE-DOWNLOADED by hand: models/moebius/pretrained/diffusion_pytorch_model.bin (864 MB) and models/moebius/vae/{config.json,diffusion_pytorch_model.bin} (160 MB) (D:/ComfyUI/models resolves to F:/ComfyUI/models). Retry Moebius vs lama once on 8199 when /queue is empty. If it crashes again with weights present, the crash is the model, not the download: record it, keep lama, and drop Moebius (do not ask Mark).
+
 2026-11-18 (session 52): nothing changed since session 51 (no new commits, models/moebius/pretrained still empty, no answers). Chain stopped at once. Waits on Mark: Moebius + PixelHacker weights pre-downloaded by hand, or a separate test ComfyUI instance. Empty leftover dirs ../photowright-s26, -s40, -stepbc hold no work.
 
 2026-11-18 (session 51): Moebius vs lama NOT run: the first MoebiusInpaint prompt ((download) pretrained) crashed the shared ComfyUI on 8199 silently (empty models/moebius/pretrained left; a supervisor restarted it). Not retried. Waits on Mark: pre-download hustvl/Moebius + PixelHacker weights by hand or allow a separate test ComfyUI instance; details ai-docs/notes/bakeoff/moebius-2026-11-18.md. lama stays default. Nothing agent-only is open; the chain should stop.
