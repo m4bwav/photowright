@@ -6,6 +6,8 @@ render from another session started within a minute of the first SeedVR2 submit 
 `text_small.png` stayed in the ComfyUI queue (deleting it was refused by the permission layer), so it
 will run after the H3 job and its output is unused. qwen-edit and `--model lama` were not submitted.
 
+2026-11-18 (session 29, second run): 8199 busy again at start (H3 render in `queue_running`); GPU routes still unmeasured.
+
 ## Test images
 - `astronaut.png` 512x512: skimage.data.astronaut (NASA photo, public domain).
 - `coffee.png` 400x400 crop of skimage.data.coffee (CC0, Rachel Michetti).
