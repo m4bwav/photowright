@@ -69,3 +69,7 @@ Verdict: classic tracers win for cutter and laser files; AI is for "redraw as a 
 
 potrace: no. vtracer CLI: no; `import vtracer`: no (wheel downloadable). autotrace: no. inkscape: no (not on PATH).
 Update 2026-11-17: vtracer 0.6.15 pip-installed; Inkscape 1.4.4 at C:/Program Files/Inkscape/bin/inkscape.com (not on PATH); its CLI action `object-trace:{scans},{smooth},{stack},{remove_background},{speckles},{smooth_corners},{optimize}` traces from the command line (phw trace --backend inkscape). Measured results of the built tracers: ai-docs/log.md, 2026-11-17 batch 4.
+
+## VTracer 1.0 and open-vectorizer (bake-off 2026-11-17)
+
+VTracer 1.0.0-alpha.4 (MIT, prebuilt CLI on GitHub releases; PyPI still 0.6.15) gives the same result as 0.6.15 by default. `--preset poster` lifts photo overlap from 0.840 to 0.884 inside the node budget, so `trace --kind photo --backend vtracer1` uses it (opt-in: set PHW_VTRACER to the exe or put vtracer 1.x on PATH). The own tracer still wins logo, icon and line art. open-vectorizer (vardirhq, MIT, no model) has no binaries; building needs Rust, so it was not run. Full table: ../ai-docs/notes/bakeoff/vtracer1-2026-11-17.md

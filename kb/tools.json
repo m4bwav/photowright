@@ -1422,5 +1422,33 @@
   "checked": "2026-11-16",
   "source": "https://pillow.readthedocs.io/en/stable/handbook/image-file-formats.html",
   "notes": "Needs libwebp >= 0.5 in Pillow; lossy is 4:2:0."
+ },
+ {
+  "name": "VTracer 1.0 CLI",
+  "kind": "tracer CLI (prebuilt binary)",
+  "code_licence": "MIT",
+  "weights_licence": "n/a",
+  "needs_account_key_or_gate": false,
+  "output_sellable": true,
+  "install_size": "0.97 MB zip, 2.4 MB exe (1.0.0-alpha.4 x86_64-pc-windows-msvc)",
+  "rung": 2,
+  "installed_here": false,
+  "checked": "2026-11-17",
+  "source": "https://github.com/visioncortex/vtracer/releases/tag/1.0.0-alpha.4",
+  "notes": "alpha; not on PyPI (pip latest is 0.6.15). Default output identical to 0.6.15 on the bake-off set; --preset poster wins on photo (overlap 0.884 vs 0.840, within budget). Opt-in: trace --backend vtracer1 with PHW_VTRACER or vtracer 1.x on PATH. Bake-off: ai-docs/notes/bakeoff/vtracer1-2026-11-17.md"
+ },
+ {
+  "name": "open-vectorizer (vardirhq)",
+  "kind": "tracer (Rust core, CLI, WASM)",
+  "code_licence": "MIT",
+  "weights_licence": "n/a (no model)",
+  "needs_account_key_or_gate": false,
+  "output_sellable": true,
+  "install_size": "no prebuilt binary or release; needs a Rust toolchain (cargo) to build",
+  "rung": 2,
+  "installed_here": false,
+  "checked": "2026-11-17",
+  "source": "https://github.com/vardirhq/open-vectorizer",
+  "notes": "not run: no release binaries and no cargo on this PC. Recovers circle/rect primitives from anti-aliased edges; author claims beats VTracer and potrace on shape-heavy input. A browser build exists (vector.vardir.no) but that is a web page, not a CLI. Retest when a binary ships or Rust is installed."
  }
 ]

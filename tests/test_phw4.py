@@ -129,6 +129,21 @@ class TestTrace(unittest.TestCase):
         if any("crashed" in n for n in doc["notes"]):
             self.assertEqual(used.rung(), 1)
 
+    def test_vtracer1_backend(self):
+        """Opt-in VTracer 1.x CLI: photo with --preset poster beats the 0.6.15 default (0.84) on the bake-off
+        photo; without the CLI the own tracer runs and a note says why."""
+        img = Image.open(BAKE / SRC["photo"])
+        doc, info, used = T.trace(img, "photo", "vtracer1")
+        self.assertTrue(doc["shapes"])
+        if T.find_vtracer1() is None:
+            self.assertEqual(used.rung(), 1)
+            self.assertTrue(any("VTracer 1.x CLI not found" in n for n in doc["notes"]), doc["notes"])
+            return
+        self.assertEqual(used.rung(), 2)
+        chk = V.vcheck(doc, img, "photo")
+        self.assertGreaterEqual(chk["overlap"], 0.87)
+        self.assertTrue(chk["pass"], chk["fails"])
+
     def test_centreline(self):
         im = Image.new("RGB", (160, 160), "white")
         ImageDraw.Draw(im).ellipse([20, 20, 140, 140], outline="black", width=3)
