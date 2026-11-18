@@ -6,6 +6,11 @@ Entry shape: `### C-YYYYMMDD-n · date · one-line summary`, then `because:`, `f
 
 ## Unreleased
 
+### C-20261118-6 · 2026-11-18 · 0.10.0: `tone`, `effect` and `canvas` commands for the next rung 1 gaps
+because: the coverage gap note's build-next list (ai-docs/notes/coverage-gaps-2026-11-17.md): Auto Tone/Contrast/Color, Vibrance, Shadows/Highlights, Match Color, Add Noise, Emboss, Find Edges, Canvas Size, Trim.
+files: scripts/phw/tonal.py, scripts/phw/__init__.py, tests/test_phw9.py, skills/photowright/SKILL.md, scripts/phw/core.py, .claude-plugin/plugin.json.
+NumPy only; Match Color stores the reference's Lab statistics in the step so a replay needs no reference file. Module is `tonal.py` because `core.tone` already exists and `from . import tone` silently returned that function. Proofs in tests/test_phw9.py.
+
 ### C-20261118-5 · 2026-11-18 · 0.9.0: `filter` and `color` commands for rung 1 gaps in the coverage table
 because: coverage sweep (ai-docs/notes/coverage-gaps-2026-11-17.md) found Gaussian/Box/Motion Blur, High Pass, Maximum/Minimum, Offset, Invert, Posterize, Threshold, Solarize, Channel Mixer and Gradient Map rows (all rung 1) unbuilt.
 files: scripts/phw/filters.py, scripts/phw/__init__.py, tests/test_phw8.py, scripts/phw/core.py, .claude-plugin/plugin.json.

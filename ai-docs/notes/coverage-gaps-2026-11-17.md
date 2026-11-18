@@ -19,16 +19,16 @@ Status: **BUILT 0.9.0** = built in this session (tests/test_phw8.py); gap = stil
 | Channel Mixer | 1 | **BUILT 0.9.0** (= matrix product within 1/255; identity bit exact) | `color --mixer` |
 | Gradient Map | 1 | **BUILT 0.9.0** (ends exact, midpoint at middle stop) | `color --gradient-map` |
 | Brightness/Contrast | 1 | gap (levels/curves can emulate) | `adjust` |
-| Vibrance | 1 | gap | `adjust` |
+| Vibrance | 1 | **BUILT 0.10.0** (grey unchanged, dull chroma gains > saturated + 0.3) | `adjust` |
 | Color Balance | 1 | gap | `adjust` |
 | Photo Filter | 1 | gap | `color` |
 | Selective Color | 1 | gap | `color` |
-| Shadows/Highlights | 1 | gap | `adjust` |
+| Shadows/Highlights | 1 | **BUILT 0.10.0** (dark side +15/255, bright side within 1/255, hue ratio within 3%) | `adjust` |
 | HDR Toning | 2 | gap | `adjust` |
 | Desaturate | 1 | partial (`adjust --bw` luminance; no (max+min)/2 mode) | `adjust` |
-| Match Color / Color Transfer | 1 | gap (Reinhard Lab statistics) | `color --match` |
+| Match Color / Color Transfer | 1 | **BUILT 0.10.0** (Lab mean within 1.5, self-match within 1/255) | `color --match` |
 | Replace Color | 1 | partial (`select` colour range + `adjust --hue --mask`; no single command) | `color` |
-| Auto Tone / Contrast / Color | 1 | gap | `adjust --auto` |
+| Auto Tone / Contrast / Color | 1 | **BUILT 0.10.0** (full 0..255 range; auto color channel means within 2/255 of luma) | `adjust --auto` |
 | Camera Raw basic panel | 2 | gap | none planned |
 | Dehaze | 1 | gap (dark channel prior) | `adjust` |
 | Clarity / Texture | 1 | gap | `adjust` |
@@ -56,8 +56,8 @@ Status: **BUILT 0.9.0** = built in this session (tests/test_phw8.py); gap = stil
 | Radial, Lens, Surface, Shape blur; Blur Gallery | 1 | gap (denoise bilateral is close to Surface Blur) | `filter` |
 | Smart Sharpen | 1 | gap | `sharpen` |
 | Shake Reduction | 2 | gap | `sharpen` |
-| Add Noise | 1 | gap | `filter` |
-| Emboss, Find Edges, Trace Contour | 1 | gap (Sobel exists in masks) | `filter` |
+| Add Noise | 1 | **BUILT 0.10.0** (std within 5%, mean shift < 0.5/255, seeded) | `filter` |
+| Emboss, Find Edges, Trace Contour | 1 | **BUILT 0.10.0** Emboss + Find Edges (flat -> 128 / 255 exactly); Trace Contour gap | `filter` |
 | Diffuse, Wind, Extrude, Tiles; Oil Paint; Pixelate family | 1 | gap | `filter` |
 | Distort family (Pinch, Twirl, Polar ...) | 1 | gap | `warp` |
 | Adaptive Wide Angle | 2 | gap | `perspective` |
@@ -67,7 +67,7 @@ Status: **BUILT 0.9.0** = built in this session (tests/test_phw8.py); gap = stil
 | Filter Gallery | 1 | gap | `filter` |
 | Custom kernel, De-Interlace, NTSC Colors | 1 | gap | `filter` |
 | Content Credentials (C2PA) | 2 | gap | `convert` |
-| Canvas Size, Trim / Reveal All | 1 | gap (crop only) | `crop` |
+| Canvas Size, Trim / Reveal All | 1 | **BUILT 0.10.0** Canvas Size + Trim (pixels exact at anchor, trim(canvas(x)) == x); Reveal All gap | `crop` |
 | Free Transform (skew) | 1 | gap | `perspective` |
 | Crop and Straighten Photos | 1 | partial (stitch --mode scans) | `stitch` |
 | Lens profile correction | 2 | gap | `perspective` |
@@ -77,4 +77,6 @@ Status: **BUILT 0.9.0** = built in this session (tests/test_phw8.py); gap = stil
 | History / Snapshots | 1 | partial (recipes + log) | `run` |
 | Layered TIFF, AVIF/HEIC/JXL, camera raw, PDF/EPS open, video layers | 2 | gap | `open`/`convert` |
 
-Next most valuable rung 1 builds: Auto Tone/Contrast/Color, Vibrance, Shadows/Highlights, Match Color (Reinhard), Add Noise, Emboss/Find Edges, Canvas Size/Trim.
+Built in 0.10.0 (tests/test_phw9.py): Auto Tone/Contrast/Color, Vibrance, Shadows/Highlights, Match Color, Add Noise, Emboss, Find Edges, Canvas Size, Trim.
+
+Next most valuable rung 1 builds: Brightness/Contrast, Color Balance, Photo Filter, Selective Color, Desaturate (max+min)/2, Dehaze (dark channel prior), Clarity, Smart Sharpen, Frequency separation, Free Transform skew, Distort family (Pinch, Twirl, Polar), Pixelate family.
