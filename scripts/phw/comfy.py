@@ -4,6 +4,8 @@ Routes (node class names checked against GET /object_info on 2026-11-17, see
 references/comfyui-nodes.md):
   cutout --method birefnet  core LoadBackgroundRemovalModel + RemoveBackground (birefnet.safetensors, MIT)
   fill/remove --method lama Acly comfyui-inpaint-nodes INPAINT_LoadInpaintModel + INPAINT_InpaintWithModel (big-lama.pt, Apache-2.0)
+  fill --model qwen-edit --prompt "..."  core Qwen-Image-Edit-2511 (fp8mixed + Lightning 4-step LoRA,
+                            Apache-2.0) with SetLatentNoiseMask; refuses a busy queue (PHW_COMFY_MAX_AHEAD)
   select --text "..."       kijai Florence2ModelLoader (Florence-2-large, MIT) caption_to_phrase_grounding boxes
                             into kijai Sam2Segmentation (sam2.1_hiera_base_plus, Apache-2.0)
 Flow: upload the image (/upload/image), POST /prompt with an API-format graph, poll /history,
@@ -32,6 +34,10 @@ FLORENCE = "Florence-2-large"
 SAM2 = "sam2.1_hiera_base_plus.safetensors"
 SEEDVR2 = {"3b": "seedvr2_3b_int8_convrot.safetensors", "7b": "seedvr2_7b_int8_convrot.safetensors"}
 SEEDVR2_VAE = "seedvr2_ema_vae_fp16.safetensors"
+QWEN_EDIT = "qwen_image_edit_2511_fp8mixed.safetensors"
+QWEN_LORA = "Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors"
+QWEN_CLIP = "qwen_2.5_vl_7b_fp8_scaled.safetensors"
+QWEN_VAE = "qwen_image_vae.safetensors"
 
 
 class Unavailable(Exception):
@@ -101,11 +107,14 @@ def upload(data, name):
     return (r.get("subfolder") + "/" if r.get("subfolder") else "") + r["name"]
 
 
-def run_graph(graph, wait=None):
-    """Queue the graph, wait (queue + run) and return its history outputs."""
+def run_graph(graph, wait=None, max_ahead=None):
+    """Queue the graph, wait (queue + run) and return its history outputs.
+    max_ahead: refuse (Unavailable) instead of queueing when more jobs than this are ahead."""
     wait = float(wait or os.environ.get("PHW_COMFY_WAIT", 1800))
     q = get_json("/queue")
     ahead = len(q.get("queue_running", [])) + len(q.get("queue_pending", []))
+    if max_ahead is not None and ahead > max_ahead:
+        raise Unavailable(f"ComfyUI is busy ({ahead} jobs ahead; PHW_COMFY_MAX_AHEAD={max_ahead})")
     r = json.loads(_req("/prompt", json.dumps({"prompt": graph, "client_id": "phw"}).encode(),
                         {"Content-Type": "application/json"}))
     if r.get("node_errors"):
@@ -204,6 +213,43 @@ def graph_seedvr2(image, width, height, seed, unet):
     }
 
 
+def graph_qwen_edit(image, mask, prompt, seed, steps=4, megapixels=1.0):
+    """Qwen-Image-Edit-2511 by instruction, after the core 2511 template (Lightning 4-step LoRA,
+    AuraFlow shift 3.1, CFGNorm, index_timestep_zero reference latents). The image and mask are
+    scaled to ~1 MP; SetLatentNoiseMask keeps the sampler inside the mask. The caller resizes the
+    result back and composites through the mask, so outside pixels stay the source's."""
+    sc = {"upscale_method": "lanczos", "megapixels": float(megapixels), "resolution_steps": 8}
+    enc = {"clip": ["clip", 0], "vae": ["vae", 0], "image1": ["rs", 0]}
+    return {
+        "img": {"class_type": "LoadImage", "inputs": {"image": image}},
+        "rs": {"class_type": "ImageScaleToTotalPixels", "inputs": {"image": ["img", 0], **sc}},
+        "mimg": {"class_type": "LoadImage", "inputs": {"image": mask}},
+        "mrs": {"class_type": "ImageScaleToTotalPixels", "inputs": {"image": ["mimg", 0], **sc}},
+        "msk": {"class_type": "ImageToMask", "inputs": {"image": ["mrs", 0], "channel": "red"}},
+        "unet": {"class_type": "UNETLoader", "inputs": {"unet_name": QWEN_EDIT, "weight_dtype": "default"}},
+        "lora": {"class_type": "LoraLoaderModelOnly", "inputs": {"model": ["unet", 0], "lora_name": QWEN_LORA,
+                                                                 "strength_model": 1.0}},
+        "ms": {"class_type": "ModelSamplingAuraFlow", "inputs": {"model": ["lora", 0], "shift": 3.1}},
+        "cn": {"class_type": "CFGNorm", "inputs": {"model": ["ms", 0], "strength": 1.0}},
+        "clip": {"class_type": "CLIPLoader", "inputs": {"clip_name": QWEN_CLIP, "type": "qwen_image"}},
+        "vae": {"class_type": "VAELoader", "inputs": {"vae_name": QWEN_VAE}},
+        "pos0": {"class_type": "TextEncodeQwenImageEditPlus", "inputs": {**enc, "prompt": prompt}},
+        "neg0": {"class_type": "TextEncodeQwenImageEditPlus", "inputs": {**enc, "prompt": ""}},
+        "pos": {"class_type": "FluxKontextMultiReferenceLatentMethod",
+                "inputs": {"conditioning": ["pos0", 0], "reference_latents_method": "index_timestep_zero"}},
+        "neg": {"class_type": "FluxKontextMultiReferenceLatentMethod",
+                "inputs": {"conditioning": ["neg0", 0], "reference_latents_method": "index_timestep_zero"}},
+        "enc": {"class_type": "VAEEncode", "inputs": {"pixels": ["rs", 0], "vae": ["vae", 0]}},
+        "lat": {"class_type": "SetLatentNoiseMask", "inputs": {"samples": ["enc", 0], "mask": ["msk", 0]}},
+        "ks": {"class_type": "KSampler", "inputs": {"model": ["cn", 0], "positive": ["pos", 0], "negative": ["neg", 0],
+                                                    "latent_image": ["lat", 0], "seed": int(seed), "steps": int(steps),
+                                                    "cfg": 1.0, "sampler_name": "euler", "scheduler": "simple",
+                                                    "denoise": 1.0}},
+        "dec": {"class_type": "VAEDecode", "inputs": {"samples": ["ks", 0], "vae": ["vae", 0]}},
+        "out": {"class_type": "PreviewImage", "inputs": {"images": ["dec", 0]}},
+    }
+
+
 # ---------------------------------------------------------------- routes
 def _tag():
     return uuid.uuid4().hex[:10]
@@ -252,3 +298,26 @@ def seedvr2_upscale(rgb, width, height, seed, size="3b"):
     if res.shape[:2] != (int(height), int(width)):
         raise Unavailable(f"SeedVR2 returned {res.shape[1]}x{res.shape[0]}, expected {width}x{height}")
     return res, {"model": unet, "seed": int(seed), "server": url(), "seconds": round(secs, 1), "queued_ahead": ahead}
+
+
+def qwen_edit_fill(rgb, hole, prompt, seed):
+    """Fill the hole by instruction. Returns the model image resized back to the source size
+    (Lanczos); the caller composites through the hole. A busy queue is refused, not waited on:
+    the model is ~20 GB and would sit behind long renders (PHW_COMFY_MAX_AHEAD, default 0)."""
+    check(["TextEncodeQwenImageEditPlus", "FluxKontextMultiReferenceLatentMethod", "ModelSamplingAuraFlow",
+           "CFGNorm", "SetLatentNoiseMask", "ImageScaleToTotalPixels", "LoraLoaderModelOnly", "UNETLoader",
+           "CLIPLoader", "VAELoader"],
+          {("UNETLoader", "unet_name"): QWEN_EDIT, ("LoraLoaderModelOnly", "lora_name"): QWEN_LORA,
+           ("CLIPLoader", "clip_name"): QWEN_CLIP, ("VAELoader", "vae_name"): QWEN_VAE})
+    t = _tag()
+    name = upload(png_bytes(rgb), f"phw_{t}.png")
+    mname = upload(png_bytes(hole.astype(np.float32)), f"phw_{t}_mask.png")
+    max_ahead = int(os.environ.get("PHW_COMFY_MAX_AHEAD", 0))
+    outs, ahead, secs = run_graph(graph_qwen_edit(name, mname, prompt, seed), max_ahead=max_ahead)
+    res = fetch_first(outs)
+    h, w = hole.shape
+    if res.shape[:2] != (h, w):
+        im = Image.fromarray(np.round(np.clip(res, 0, 1) * 255).astype(np.uint8)).resize((w, h), Image.LANCZOS)
+        res = np.asarray(im, np.float32) / 255.0
+    return res, {"model": QWEN_EDIT, "lora": QWEN_LORA, "seed": int(seed), "server": url(),
+                 "seconds": round(secs, 1), "queued_ahead": ahead}

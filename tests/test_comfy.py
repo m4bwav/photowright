@@ -75,8 +75,21 @@ class Graphs(unittest.TestCase):
         self.assertEqual(g["sam"]["inputs"]["model"], "sam2.1_hiera_base_plus.safetensors")
         self.assertFalse(g["run"]["inputs"]["do_sample"])
 
+    def test_qwen_edit_graph(self):
+        g = comfy.graph_qwen_edit("a.png", "m.png", "replace the box with grass", 11)
+        self.links_ok(g)
+        self.assertEqual(g["unet"]["inputs"]["unet_name"], comfy.QWEN_EDIT)
+        self.assertEqual(g["lora"]["inputs"]["lora_name"], comfy.QWEN_LORA)
+        self.assertEqual(g["clip"]["inputs"], {"clip_name": comfy.QWEN_CLIP, "type": "qwen_image"})
+        self.assertEqual(g["pos0"]["inputs"]["prompt"], "replace the box with grass")
+        self.assertEqual(g["lat"]["inputs"]["mask"], ["msk", 0])
+        self.assertEqual(g["ks"]["inputs"]["latent_image"], ["lat", 0])
+        self.assertEqual((g["ks"]["inputs"]["seed"], g["ks"]["inputs"]["steps"]), (11, 4))
+        self.assertEqual(g["msk"]["inputs"]["image"], ["mrs", 0])
+
 
 class SeedVR2Graph(unittest.TestCase):
+
     def test_seedvr2_graph(self):
         g = comfy.graph_seedvr2("a.png", 192, 160, 4, comfy.SEEDVR2["3b"])
         Graphs.links_ok(self, g)
@@ -143,6 +156,67 @@ class Fallback(unittest.TestCase):
         self.assertEqual(r["rung"], 3)
         self.assertEqual(r["steps"][0]["params"]["model"], "big-lama.pt")
         self.assertEqual(r["steps"][0]["params"]["seed"], 5)
+        b = np.asarray(Image.open(r["output"]).convert("RGB"))
+        self.assertTrue((b[20:60, 30:66] == 0).all())
+        out = np.ones(b.shape[:2], bool)
+        out[20:60, 30:66] = False
+        self.assertTrue((b[out] == self.a[out]).all())
+
+    def test_qwen_edit_falls_back_when_down(self):
+        with self.down():
+            r = run("fill", self.src, "--model", "qwen-edit", "--prompt", "grass", "--rect", "30,20,36,40",
+                    "-o", self.d / "f.png")
+        self.assertLess(r["rung"], 3)
+        self.assertTrue(any(n.startswith("fell back: ComfyUI server unreachable") for n in r["notes"]), r["notes"])
+        self.assertEqual(r["steps"][0]["params"]["prompt"], "grass")
+        b = np.asarray(Image.open(r["output"]).convert("RGB"))
+        out = np.ones(b.shape[:2], bool)
+        out[20:60, 30:66] = False
+        self.assertTrue((b[out] == self.a[out]).all())
+
+    def test_qwen_edit_refuses_busy_queue(self):
+        def fake(path, data=None, headers=None, timeout=30):
+            if path == "/queue":
+                return b'{"queue_running": [[0, "h3"]], "queue_pending": []}'
+            raise AssertionError(f"queued or called {path} on a busy server")
+        with mock.patch.object(comfy, "check"), mock.patch.object(comfy, "upload", return_value="x.png"), \
+                mock.patch.object(comfy, "_req", side_effect=fake):
+            r = run("fill", self.src, "--model", "qwen-edit", "--prompt", "grass", "--rect", "30,20,36,40",
+                    "-o", self.d / "f.png")
+        self.assertLess(r["rung"], 3)
+        self.assertTrue(any("ComfyUI is busy (1 jobs ahead" in n for n in r["notes"]), r["notes"])
+
+    def test_qwen_edit_needs_prompt(self):
+        with self.assertRaises(SystemExit) as cm:
+            run("fill", self.src, "--model", "qwen-edit", "--rect", "30,20,36,40", "-o", self.d / "f.png")
+        self.assertIn("--prompt", str(cm.exception))
+
+    def test_mocked_qwen_edit_composites_through_mask(self):
+        """The model repaints the whole frame at another size; only mask pixels may change."""
+        seen = {}
+
+        def fake_post(path, data=None, headers=None, timeout=30):
+            if path == "/queue":
+                return b'{"queue_running": [], "queue_pending": []}'
+            if path == "/prompt":
+                seen["graph"] = json.loads(data)["prompt"]
+                return b'{"prompt_id": "p1"}'
+            if path.startswith("/history/"):
+                return b'{"p1": {"status": {"completed": true}, "outputs": {"out": {"images": [{"filename": "o.png"}]}}}}'
+            raise AssertionError(path)
+
+        def fake_fetch(outs, node="out"):
+            return np.zeros((40, 48, 3), np.float32)      # half size, all black
+        with mock.patch.object(comfy, "check"), mock.patch.object(comfy, "upload", side_effect=lambda d, n: n), \
+                mock.patch.object(comfy, "_req", side_effect=fake_post), \
+                mock.patch.object(comfy, "fetch_first", side_effect=fake_fetch):
+            r = run("fill", self.src, "--model", "qwen-edit", "--prompt", "a green plant", "--rect", "30,20,36,40",
+                    "--seed", "4", "-o", self.d / "f.png")
+        self.assertEqual(r["rung"], 3)
+        prm = r["steps"][0]["params"]
+        self.assertEqual((prm["model"], prm["seed"], prm["prompt"]), (comfy.QWEN_EDIT, 4, "a green plant"))
+        self.assertTrue(prm["invented_detail"])
+        self.assertEqual(seen["graph"]["pos0"]["inputs"]["prompt"], "a green plant")
         b = np.asarray(Image.open(r["output"]).convert("RGB"))
         self.assertTrue((b[20:60, 30:66] == 0).all())
         out = np.ones(b.shape[:2], bool)

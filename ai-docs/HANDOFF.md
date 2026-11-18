@@ -1,6 +1,6 @@
 # HANDOFF: photowright
 
-Status: phw 0.7.0 merged (2026-11-18: all 10 Szeliski proposals built, PR #15; worth follow-ups done, PR #16: description 152 tokens, new layered-PSD action case, baseline now fails every action). NOT public or tagged: going public waits on Mark. 2026-11-18: upscale --method seedvr2 wired (offline tests only; live run unmeasured, 8199 busy with an H3 render). Next: live-measure SeedVR2 vs Lanczos on a held-back original when 8199 is idle, then wire Qwen-Image-Edit fill by instruction, IC-Light relight, layered, re-run evergreen-worth heavy for a final KEEP, wiki after public, bridge last, first everscout scan.
+Status: phw 0.7.0 merged (2026-11-18: all 10 Szeliski proposals built, PR #15; worth follow-ups done, PR #16: description 152 tokens, new layered-PSD action case, baseline now fails every action). NOT public or tagged: going public waits on Mark. 2026-11-18: upscale --method seedvr2 wired (offline tests only; live run unmeasured, 8199 busy with an H3 render). Next: live-measure SeedVR2 vs Lanczos on a held-back original when 8199 is idle, live-measure `fill --model qwen-edit` (wired 2026-11-18, 0.7.1, offline tests only), IC-Light relight, layered, re-run evergreen-worth heavy for a final KEEP, wiki after public, bridge last, first everscout scan.
 
 Continue prompt: [plans/photowright-continue-prompt.md](plans/photowright-continue-prompt.md)
 
@@ -22,7 +22,7 @@ Continue prompt: [plans/photowright-continue-prompt.md](plans/photowright-contin
 
 ## Next
 
-0. Wiki after Mark makes the repo public. Worth follow-ups (log). Rung 3 DONE 2026-11-17 in 0.6.0 (scripts/phw/comfy.py, tests/test_comfy.py): cutout --model birefnet, fill/remove --model lama, select --text (Florence-2 + SAM 2.1 base_plus). SeedVR2 upscale wired 2026-11-18 (comfy.graph_seedvr2, core nodes; weights only on the Windows box). Still to wire: fill by instruction (Qwen-Image-Edit-2511), relight (IC-Light+DA-V2 Small), layers (layerdiffuse/Qwen-Image-Layered). Update references/comfyui-nodes.md Installed column.
+0. Wiki after Mark makes the repo public. Worth follow-ups (log). Rung 3 DONE 2026-11-17 in 0.6.0 (scripts/phw/comfy.py, tests/test_comfy.py): cutout --model birefnet, fill/remove --model lama, select --text (Florence-2 + SAM 2.1 base_plus). SeedVR2 upscale wired 2026-11-18 (comfy.graph_seedvr2, core nodes; weights only on the Windows box). Qwen-Image-Edit fill wired 2026-11-18 (0.7.1, `fill --model qwen-edit --prompt`). Still to wire: relight (IC-Light+DA-V2 Small), layers (layerdiffuse/Qwen-Image-Layered). Update references/comfyui-nodes.md Installed column.
 
 1. Step G: Szeliski proposals ALL BUILT 2026-11-18 (0.7.0). Was: build its 10 proposals, each test first (adjust luminance curves and equalise, bilateral denoise, warp prefilter, pyramid composite, median stack, fill/stitch doc lines, upscale invented flag). The rest of ai-docs/notes/books.md are leads.
 2. Step E: first real jobs, one per kind from Mark's five projects (Arvum sprites, SpaceDeckBuilder2 cards, polywright print/laser, AI film stills, markdavidrogers.com images): a photo retouch, a layered composite, a batch over a folder (phw batch, dry run first), a trace to a clean vector (phw trace + vcheck + export, DXF for laser). Each goes through the bars, then to Mark on an askwright page. Whatever fails becomes a test.
