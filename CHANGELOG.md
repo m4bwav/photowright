@@ -6,6 +6,11 @@ Entry shape: `### C-YYYYMMDD-n · date · one-line summary`, then `because:`, `f
 
 ## Unreleased
 
+### C-20261118-14 · 2026-11-18 · 0.18.0: `hdrmerge`, `hdrtone`, `autoalign`, `lasso`, `vpclone`, `widefix`, `comps`, `assets`
+because: the gap note's build-next list after 0.17.0 (8199 busy, so the model-route checks waited again).
+files: scripts/phw/hdr.py, scripts/phw/comps.py, scripts/phw/__init__.py, scripts/phw/core.py, tests/test_phw17.py, skills/photowright/SKILL.md, .claude-plugin/plugin.json, ai-docs/notes/coverage-gaps-2026-11-17.md.
+Merge to HDR (Debevec radiance from brackets with known times, Reinhard or linear output, optional .npy radiance), HDR Toning (Reinhard with a log-detail boost), Auto-Align Layers (translation by phase correlation), Magnetic Lasso (intelligent scissors to a mask) Vanishing Point clone (homography between quads), Adaptive Wide Angle (fisheye to rectilinear, four lens models), Layer Comps (named visibility/opacity/position overrides, one PNG each) and Generator image assets (layers named like files, with % or WxH sizes), each with a numeric proof in tests/test_phw17.py.
+
 ### C-20261118-13 · 2026-11-18 · 0.17.0: `caextend`, `shake`, `indexed`, `layerstyle --satin`; live ComfyUI tests never hang
 because: the gap note's build-next list after 0.16.0, and the full suite hung in tests/test_comfy.py while another session's render held 8199.
 files: scripts/phw/extend.py, scripts/phw/fills.py, scripts/phw/core.py (run --upto), scripts/phw/__init__.py, scripts/phw/core.py, tests/test_phw16.py, tests/test_comfy.py, skills/photowright/SKILL.md, .claude-plugin/plugin.json.
