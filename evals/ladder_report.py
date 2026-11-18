@@ -40,7 +40,8 @@ def main(path):
     tally = defaultdict(lambda: defaultdict(int))
     for test, where, res in LINE.findall(text):
         r = "skip" if res.startswith("skipped") else res.lower()
-        tally[group(where + "." + test)][r] += 1
+        g = group(test)  # class names (Batch18...) would all read as "batch"
+        tally[g if g != "other" else group(where.split(".")[-2] if "." in where else where)][r] += 1
     print("| group | ok | fail | error | skip |")
     print("|---|---|---|---|---|")
     for g in [g for g, _ in GROUPS][::-1] + ["other"]:
