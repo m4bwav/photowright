@@ -30,6 +30,8 @@ BIREFNET = "birefnet.safetensors"
 LAMA = "big-lama.pt"
 FLORENCE = "Florence-2-large"
 SAM2 = "sam2.1_hiera_base_plus.safetensors"
+SEEDVR2 = {"3b": "seedvr2_3b_int8_convrot.safetensors", "7b": "seedvr2_7b_int8_convrot.safetensors"}
+SEEDVR2_VAE = "seedvr2_ema_vae_fp16.safetensors"
 
 
 class Unavailable(Exception):
@@ -177,6 +179,31 @@ def graph_text_select(image, text, seed, index=""):
     }
 
 
+def graph_seedvr2(image, width, height, seed, unet):
+    """One still through core SeedVR2 (one-step diffusion SR), after the core blueprint
+    'Upscale Video (SeedVR2 3B Int8)' without its video and temporal-chunk nodes."""
+    tile = {"tile_size": 512, "overlap": 128, "temporal_size": 64, "temporal_overlap": 8}
+    return {
+        "img": {"class_type": "LoadImage", "inputs": {"image": image}},
+        "rs": {"class_type": "ImageScale", "inputs": {"image": ["img", 0], "upscale_method": "lanczos",
+                                                       "width": int(width), "height": int(height), "crop": "disabled"}},
+        "pre": {"class_type": "SeedVR2Preprocess", "inputs": {"resized_images": ["rs", 0]}},
+        "vae": {"class_type": "VAELoader", "inputs": {"vae_name": SEEDVR2_VAE}},
+        "unet": {"class_type": "UNETLoader", "inputs": {"unet_name": unet, "weight_dtype": "default"}},
+        "enc": {"class_type": "VAEEncodeTiled", "inputs": {"pixels": ["pre", 0], "vae": ["vae", 0], **tile}},
+        "cond": {"class_type": "SeedVR2Conditioning", "inputs": {"model": ["unet", 0], "vae_conditioning": ["enc", 0]}},
+        "ks": {"class_type": "KSampler", "inputs": {"model": ["unet", 0], "positive": ["cond", 0],
+                                                    "negative": ["cond", 1], "latent_image": ["enc", 0],
+                                                    "seed": int(seed), "steps": 1, "cfg": 1.0,
+                                                    "sampler_name": "euler", "scheduler": "simple", "denoise": 1.0}},
+        "dec": {"class_type": "VAEDecodeTiled", "inputs": {"samples": ["ks", 0], "vae": ["vae", 0], **tile}},
+        "post": {"class_type": "SeedVR2PostProcessing", "inputs": {"images": ["dec", 0],
+                                                                  "original_resized_images": ["rs", 0],
+                                                                  "color_correction_method": "lab"}},
+        "out": {"class_type": "PreviewImage", "inputs": {"images": ["post", 0]}},
+    }
+
+
 # ---------------------------------------------------------------- routes
 def _tag():
     return uuid.uuid4().hex[:10]
@@ -213,3 +240,15 @@ def text_mask(rgb, text, seed):
     m = fetch_first(outs)[..., 0]
     return m, {"model": f"{FLORENCE} + {SAM2}", "seed": max(1, int(seed)), "server": url(),
                "seconds": round(secs, 1), "queued_ahead": ahead}
+
+
+def seedvr2_upscale(rgb, width, height, seed, size="3b"):
+    unet = SEEDVR2[size]
+    check(["SeedVR2Preprocess", "SeedVR2Conditioning", "SeedVR2PostProcessing", "UNETLoader", "VAELoader"],
+          {("UNETLoader", "unet_name"): unet, ("VAELoader", "vae_name"): SEEDVR2_VAE})
+    name = upload(png_bytes(rgb), f"phw_{_tag()}.png")
+    outs, ahead, secs = run_graph(graph_seedvr2(name, width, height, seed, unet))
+    res = fetch_first(outs)
+    if res.shape[:2] != (int(height), int(width)):
+        raise Unavailable(f"SeedVR2 returned {res.shape[1]}x{res.shape[0]}, expected {width}x{height}")
+    return res, {"model": unet, "seed": int(seed), "server": url(), "seconds": round(secs, 1), "queued_ahead": ahead}

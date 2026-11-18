@@ -189,6 +189,26 @@ def op_upscale(img, p, used):
     if p.get("method") == "realesrgan":
         raise SystemExit("upscale: " + ESRGAN_ROUTE)
     r = core.op_resize(img, {"width": p["width"], "height": p["height"], "filter": "lanczos"}, used)
+    if p.get("method") == "seedvr2":
+        from . import comfy
+        try:
+            c = img.color()
+            rgb = c if c.shape[2] >= 3 else np.repeat(c, 3, axis=2)
+            res, info = comfy.seedvr2_upscale(rgb[..., :3], p["width"], p["height"], int(p.get("seed", 0)),
+                                              p.get("size", "3b"))
+            if c.shape[2] == 1:
+                res = res.mean(axis=2, keepdims=True)
+            px = np.concatenate([res, r.px[..., c.shape[2]:]], axis=2) if img.alpha else res
+            used.add("upscale", 3, f"ComfyUI SeedVR2 ({info['model']})")
+            p.update(model=info["model"], seed=info["seed"], invented_detail=True)
+            out = r.copy(px=px.astype(np.float32))
+            out.notes.append(f"rung 3 SeedVR2 via {info['server']}: {info['seconds']} s, {info['queued_ahead']} jobs ahead")
+            out.notes.append("SeedVR2 invents detail: check text and faces against the source before use "
+                             "(alpha, if any, is Lanczos)")
+            return out
+        except comfy.Unavailable as e:
+            r.notes.append(f"fell back: {e}")
+            p["fell_back"] = str(e)
     r.notes.append("Lanczos in linear light: no detail invented. A rung 3 model would invent detail; flag text and faces then.")
     p["invented_detail"] = False
     return r
@@ -421,7 +441,10 @@ def cmd_upscale(a):
         nh = a.height or max(1, round(h * a.width / w))
     else:
         nw, nh = max(1, round(w * a.scale)), max(1, round(h * a.scale))
-    return one_step(a, "upscale", {"width": nw, "height": nh, "method": "lanczos", "invented_detail": False})
+    p = {"width": nw, "height": nh, "method": a.method, "invented_detail": False}
+    if a.method == "seedvr2":
+        p.update(seed=a.seed, size=a.size)
+    return one_step(a, "upscale", p)
 
 
 def multi(a, tag, p):
@@ -455,11 +478,14 @@ def add_commands(sub, edit):
     p.add_argument("--size", help="W,H of the output (default: the input size)")
     p.add_argument("--fill", help="r,g,b 0..1 for uncovered areas (images without alpha)")
     p.add_argument("--no-prefilter", action="store_true", help="plain inverse mapping even where the image shrinks >2x")
-    p = edit("upscale", cmd_upscale, "upscale: Lanczos in linear light (rung 1); Real-ESRGAN stub (rung 3)")
+    p = edit("upscale", cmd_upscale, "upscale: Lanczos in linear light (rung 1); SeedVR2 via ComfyUI (rung 3, falls back to Lanczos)")
     p.add_argument("--scale", type=float, default=2.0)
     p.add_argument("--width", type=int)
     p.add_argument("--height", type=int)
-    p.add_argument("--method", choices=("lanczos", "realesrgan"), default="lanczos")
+    p.add_argument("--method", choices=("lanczos", "seedvr2", "realesrgan"), default="lanczos")
+    p.add_argument("--model", dest="method", choices=("seedvr2",), help="same as --method seedvr2")
+    p.add_argument("--size", choices=("3b", "7b"), default="3b", help="SeedVR2 weights (7b: slower, ~16 GB VRAM)")
+    p.add_argument("--seed", type=int, default=0)
     for name, fn, help_ in (("stack", cmd_stack, "exposure fusion (Mertens) or focus stack of aligned images"),
                             ("stitch", cmd_stitch, "panorama stitch (OpenCV, rung 2; rung 1 refuses)")):
         p = sub.add_parser(name, help=help_)
@@ -479,6 +505,7 @@ core.EXTRA_COMMANDS.append(add_commands)
 core.DOCTOR_GROUPS.append(lambda: {
     "warp, perspective": (2, "OpenCV remap") if probe("cv2") else (1, "own bilinear sampling"),
     "upscale": (1, "Lanczos in linear light"),
+    "upscale --method seedvr2": (3, "SeedVR2 3B/7B int8 via ComfyUI core nodes; falls back to Lanczos"),
     "upscale --method realesrgan": (3, "not built: comfyui-gen route documented"),
     "stitch": (2, "OpenCV Stitcher") if probe("cv2") else (0, "refused at rung 1 (needs OpenCV)"),
     "stack (exposure, focus)": (1, "own Laplacian pyramids"),
