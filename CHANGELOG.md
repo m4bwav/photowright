@@ -6,6 +6,11 @@ Entry shape: `### C-YYYYMMDD-n · date · one-line summary`, then `because:`, `f
 
 ## Unreleased
 
+### C-20261118-4 · 2026-11-18 · 0.7.2: stack/stitch recipes replay after the job folder moves
+- because: HANDOFF batch 4 note "`run` was not extended to stack/stitch recipes (they store `others` as absolute paths ... untested)"; design.md says a recipe folder replays to the same pixels
+- files: scripts/phw/core.py, scripts/phw/transform.py, tests/test_phw6.py, .claude-plugin/plugin.json
+- With `--recipe`, stack and stitch now store the other inputs relative to the recipe folder plus `others_sha256`; `apply_steps` resolves relative `others` against the recipe folder; `run` adds a note naming any other input that is missing or changed. Old recipes with absolute paths still replay. Test: stack recipe copied to a new folder replays bit-identical; changing one input names it in the notes.
+
 ### C-20261118-3 · 2026-11-18 · 0.7.1: fill --model qwen-edit --prompt (rung 3, Qwen-Image-Edit-2511)
 - because: HANDOFF next item "wire fill by instruction (Qwen-Image-Edit-2511)"; weights, Lightning LoRA, text encoder and VAE are on the 8199 server, core nodes (Apache-2.0, references/comfyui-nodes.md)
 - files: scripts/phw/comfy.py, scripts/phw/retouch.py, tests/test_comfy.py, skills/photowright/SKILL.md, references/comfyui-nodes.md, references/retouch-fill.md, .claude-plugin/plugin.json, scripts/phw/core.py

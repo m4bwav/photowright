@@ -40,7 +40,7 @@ try:
 except Exception:  # pragma: no cover - Pillow built without LittleCMS
     ImageCms = None
 
-VERSION = "0.7.1"
+VERSION = "0.7.2"
 ROOT = Path(__file__).resolve().parent.parent.parent
 
 # Hooks filled by the other modules of the package (masks, compose, layered).
@@ -836,7 +836,10 @@ def apply_steps(img, steps, used, base_dir=None):
         fn = OPS.get(st["op"])
         if fn is None:
             raise ValueError(f"unknown op {st['op']}")
-        res = fn(img, dict(st.get("params") or {}), used)
+        prm = dict(st.get("params") or {})
+        if base_dir and isinstance(prm.get("others"), list):
+            prm["others"] = [f if Path(f).is_absolute() else str(Path(base_dir) / f) for f in prm["others"]]
+        res = fn(img, prm, used)
         if st.get("mask"):
             mp = Path(st["mask"])
             if base_dir and not mp.is_absolute():
@@ -850,6 +853,26 @@ def apply_steps(img, steps, used, base_dir=None):
 
 
 # ---------------------------------------------------------------- recipe log
+def rel_to(f, base):
+    """Path of f relative to base with forward slashes; absolute when on another drive."""
+    try:
+        return os.path.relpath(Path(f).resolve(), Path(base).resolve()).replace("\\", "/")
+    except ValueError:
+        return str(Path(f).resolve())
+
+
+def others_changed(steps, base_dir):
+    """Stack/stitch inputs that are missing or whose sha256 no longer matches the recipe."""
+    bad = []
+    for st in steps:
+        prm = st.get("params") or {}
+        for f, h in zip(prm.get("others") or [], prm.get("others_sha256") or []):
+            fp = Path(f) if Path(f).is_absolute() else Path(base_dir) / f
+            if not fp.exists() or sha256(fp) != h:
+                bad.append(f)
+    return bad
+
+
 def record(recipe, src, steps, out, used, seconds):
     recipe = Path(recipe)
     if recipe.exists():
@@ -1218,6 +1241,9 @@ def cmd_run(a):
     notes = []
     if sha256(src) != r["source"].get("sha256"):
         notes.append("source sha256 differs from the recipe: the source changed")
+    bad = others_changed(r["steps"], recipe.parent)
+    if bad:
+        notes.append("other inputs missing or changed since the recipe: " + ", ".join(bad))
     used = Used()
     img = load(src, used)
     img = apply_steps(img, r["steps"], used, recipe.parent)
