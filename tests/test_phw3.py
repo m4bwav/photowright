@@ -149,7 +149,7 @@ class TestRetouch(Base):
         self.assertLess(abs(out[hole].mean() - truth[hole].mean()), 0.03)
         self.assertGreaterEqual(out[hole].std(), 0.7 * truth[hole].std())
 
-    def test_fill_auto_thin_and_lama_stub(self):
+    def test_fill_auto_thin_and_lama_fallback(self):
         src = save_rgb(natural(64, 64, 4), self.d / "n.png")
         a = u8(src).copy()
         a[30:32, 5:60] = 255                                  # a 2 px scratch
@@ -157,9 +157,11 @@ class TestRetouch(Base):
         r = run("--json", "fill", self.d / "s.png", "--rect", "5,30,55,2", "-o", self.d / "f.png")
         self.assertIn(r["rung"], (1, 2))
         self.assertLess(np.abs(rgb(r["output"])[30:32, 5:60] - rgb(src)[30:32, 5:60]).mean(), 0.04)
-        with self.assertRaises(SystemExit) as cm:
-            run("fill", src, "--rect", "5,5,5,5", "--method", "lama")
-        self.assertIn("comfyui", str(cm.exception))
+        import urllib.error
+        from unittest import mock
+        with mock.patch("urllib.request.urlopen", side_effect=urllib.error.URLError("refused")):
+            r = run("fill", src, "--rect", "5,5,5,5", "--method", "lama", "-o", self.d / "l.png")
+        self.assertTrue(any(n.startswith("fell back:") for n in r["notes"]))
 
     def test_remove_grows_region_and_replays(self):
         y, x = np.mgrid[:64, :64]

@@ -11,16 +11,20 @@ Note on GPL node packs: a GPL-3.0 node pack runs inside the user's ComfyUI; phot
 - Custom nodes relevant here: `comfyui_layerstyle` (LayerStyle: has BiRefNet, SAM, matting, colour nodes; the companion `LayerStyle_Advance` pack holds most AI nodes and is NOT installed), `comfyui_essentials` (image ops, remove background helpers), `comfyui-kjnodes`. No RMBG, SAM2, Florence2, inpaint-nodes, BrushNet, SUPIR, IC-Light, Depth Anything, ToSVG or layerdiffuse packs.
 - Models already on disk: `background_removal/birefnet.safetensors` (core ComfyUI background removal node), `diffusion_models/qwen_image_edit_2509_int8`, `qwen_image_edit_2511_fp8` (two builds), `qwen_image_layered_fp8mixed`, `flux-2-klein-4b`, `flux-2-klein-base-4b`, `flux-2-klein-9b-fp8`, `seedvr2_3b_int8` and `seedvr2_7b_int8`, `pid_flux1/flux2_1024_to_4096` (upscale-in-latent, licence not checked here), `rt_detr_v4` detector, `upscale_models/` folder exists (contents not listed in detail).
 
+## Wired in phw 0.6.0 (2026-11-17)
+
+Node classes from GET /object_info on the live server: `LoadBackgroundRemovalModel` (bg_removal_name) + `RemoveBackground` -> MASK; `INPAINT_LoadInpaintModel` (model_name) + `INPAINT_InpaintWithModel` (inpaint_model, image, mask, seed); `Florence2ModelLoader` (model "Florence-2-large", reads models/LLM, no download) + `Florence2Run` (task caption_to_phrase_grounding, seed min 1, output 3 = JSON) + `Florence2toCoordinates` (index "" = every box) + `DownloadAndLoadSAM2Model` (sam2.1_hiera_base_plus.safetensors is on disk, so no download) + `Sam2Segmentation` (bboxes). Masks go in as a grey PNG through `LoadImage` + `ImageToMask` (red) and come back through `MaskToImage` + `PreviewImage` (temp folder, nothing left in output/). Code: scripts/phw/comfy.py. Other installs (IC-Light, controlnet_aux DA-V2 Small, layerdiffuse) are installed but not wired yet.
+
 ## Table
 
 | Backend | Node pack (licence) | Model weights (licence, gate) | Size (approx.) | Rung 3 | photowright command | Installed |
 |---|---|---|---|---|---|---|
-| Core "Remove background" + BiRefNet | ComfyUI core (GPL-3.0) | BiRefNet MIT, ungated; BiRefNet_HR-matting MIT | ~0.9 GB | PASS | cutout | YES (birefnet.safetensors) |
+| Core "Remove background" + BiRefNet | ComfyUI core (GPL-3.0) | BiRefNet MIT, ungated; BiRefNet_HR-matting MIT | ~0.9 GB | PASS | cutout | YES (birefnet.safetensors); WIRED in phw 0.6.0 (`cutout --model birefnet`) |
 | ComfyUI-RMBG (1038lab), 2.2k stars, active | GPL-3.0 | bundles many: BiRefNet (MIT) PASS, SAM2 PASS, GroundingDINO PASS; RMBG-2.0 FAIL (Bria, gated, NC), RMBG-1.4 FAIL (NC), InSPyReNet PASS | per model 0.2-1 GB | PASS only with an allow-list of models | cutout, select subject, select by text | no |
-| ComfyUI-segment-anything-2 (kijai) | Apache-2.0 | SAM 2.1 Apache-2.0, ungated | 0.15-0.9 GB | PASS | select (click/box), video masks | no |
-| ComfyUI-Florence2 (kijai) | MIT | Florence-2-large MIT, ungated | ~1.5 GB | PASS | select by text (grounding boxes, then SAM 2.1), captions | no |
+| ComfyUI-segment-anything-2 (kijai) | Apache-2.0 | SAM 2.1 Apache-2.0, ungated | 0.15-0.9 GB | PASS | select (click/box), video masks | YES (2.1 base_plus, large); WIRED in phw 0.6.0 (`select --text`, base_plus) |
+| ComfyUI-Florence2 (kijai) | MIT | Florence-2-large MIT, ungated | ~1.5 GB | PASS | select by text (grounding boxes, then SAM 2.1), captions | YES (models/LLM/Florence-2-large); WIRED in phw 0.6.0 (`select --text`) |
 | comfyui_segment_anything (storyicon): GroundingDINO + SAM | Apache-2.0 | GroundingDINO-base Apache-2.0, ungated; SAM 1 Apache-2.0 | ~0.9 GB + SAM | PASS | select by text | no |
-| comfyui-inpaint-nodes (Acly) | GPL-3.0 | LaMa Apache-2.0 PASS; Fooocus patch OpenRAIL PASS; MAT CC BY-NC FAIL | LaMa ~0.2 GB, Fooocus ~1.3 GB + SDXL | PASS (LaMa, Fooocus+SDXL); not MAT | fill / remove | no |
+| comfyui-inpaint-nodes (Acly) | GPL-3.0 | LaMa Apache-2.0 PASS; Fooocus patch OpenRAIL PASS; MAT CC BY-NC FAIL | LaMa ~0.2 GB, Fooocus ~1.3 GB + SDXL | PASS (LaMa, Fooocus+SDXL); not MAT | fill / remove | YES (big-lama.pt only); WIRED in phw 0.6.0 (`fill`/`remove --model lama`) |
 | ComfyUI-BrushNet (nullquant) | Apache-2.0 | BrushNet SDXL/SD1.5 weights: licence not verified on a card (code Apache-2.0); needs an SD base (OpenRAIL) | ~1.5-2.5 GB | UNVERIFIED | fill (generative) | no |
 | Qwen-Image-Edit-2511 (core nodes) | ComfyUI core | Apache-2.0, ungated | fp8 ~20 GB + text encoder | PASS | fill / remove by instruction, relight by prompt, restore | YES |
 | Qwen-Image-Layered (core) | ComfyUI core | Apache-2.0, ungated | fp8 ~20 GB | PASS | layer decomposition (split to PSD layers) | YES |

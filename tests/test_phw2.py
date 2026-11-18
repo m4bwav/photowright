@@ -364,11 +364,14 @@ class TestCutout(Base):
                 os.environ["PHW_RUNG_MAX"] = old
         self.assertIn("colour key + border flood", r["tool"])
 
-    def test_birefnet_is_stubbed(self):
+    def test_birefnet_falls_back_when_server_down(self):
+        import urllib.error
+        from unittest import mock
         a, _ = self.scene()
-        with self.assertRaises(SystemExit) as cm:
-            run("cutout", self.png(a, "b.png", "RGB"), "--method", "birefnet")
-        self.assertIn("comfyui", str(cm.exception).lower())
+        with mock.patch("urllib.request.urlopen", side_effect=urllib.error.URLError("refused")):
+            r = run("cutout", self.png(a, "b.png", "RGB"), "--method", "birefnet")
+        self.assertLess(r["rung"], 3)
+        self.assertTrue(any(n.startswith("fell back:") for n in r["notes"]))
 
 
 # ---------------------------------------------------------------- layers

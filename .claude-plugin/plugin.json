@@ -1,6 +1,6 @@
 {
   "name": "photowright",
-  "version": "0.5.0",
+  "version": "0.6.0",
   "description": "Photoshop-like work on an existing image from the command line, and tracing it to vectors, free tools first and Photoshop never required. Editing an existing image: levels, curves, exposure, white balance, crop, resize, sharpen, denoise, masks, background removal, heal, clone, object removal, content-aware fill, photo restore, perspective, upscale, stacks, panoramas, layers and blend modes, PSD or ORA, one edit over a folder. Tracing it to vectors: raster to SVG for logos, icons, line art, photos and centrelines, checked by render-back, exported as SVG, PDF, EPS or DXF for a laser cutter. Use on 'brighten this photo', 'remove the background', 'remove this person from the photo', 'fix the perspective', 'batch resize this folder', 'open this PSD', 'vectorize my logo', 'trace this to SVG'. Also 'refresh photowright'. Not for critiquing or ranking images (artwright), pixel art or sprites (pixelwright), brand marks from nothing (brandwright) or generating new images (comfyui-gen).",
   "author": {
     "name": "Mark Rogers"

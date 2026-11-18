@@ -146,7 +146,7 @@ def save_mask(m, path, used=None):
 
 
 # ---------------------------------------------------------------- mask steps
-MAKE = ("color", "luma", "edge", "flood", "rect", "ellipse", "polygon", "file")
+MAKE = ("text", "color", "luma", "edge", "flood", "rect", "ellipse", "polygon", "file")
 
 
 def make_mask(img, shape, kind, p, used, base_dir):
@@ -161,6 +161,14 @@ def make_mask(img, shape, kind, p, used, base_dir):
         return read_mask(f, shape)
     if img is None:
         raise ValueError(f"mask.{kind} needs an image (use select, not mask)")
+    if kind == "text":
+        from . import comfy
+        try:
+            m, info = comfy.text_mask(rgb3(img), p["text"], p.get("seed", 1))
+        except comfy.Unavailable as e:
+            raise SystemExit(f"select --text needs rung 3 and cannot fall back (no rung 1/2 method reads text): {e}")
+        used.add("mask.text", 3, f"ComfyUI {info['model']}")
+        return np.clip(m, 0, 1).astype(np.float32)
     if kind == "luma":
         c = rgb3(img)
         y = c @ np.array([0.2126, 0.7152, 0.0722], np.float32)
@@ -228,17 +236,19 @@ def apply_mask_steps(img, mask, steps, used, base_dir=None, shape=None):
 
 
 # ---------------------------------------------------------------- cutout
-BIREFNET_ROUTE = ("rung 3 BiRefNet is not built in this batch. Route when it is: comfyui-gen on the Windows "
-                  "ComfyUI with models/background_removal/birefnet.safetensors (MIT, ungated) through the "
-                  "comfyui_layerstyle BiRefNet node, mask back to phw.py as an 8-bit PNG. "
-                  "Use --method grabcut (rung 2, OpenCV) or --method key (rung 1) now.")
-
-
 def cutout_mask(img, p, used):
     method = p.get("method", "auto")
     h, w = img.px.shape[:2]
     if method == "birefnet":
-        raise SystemExit("cutout: " + BIREFNET_ROUTE)
+        from . import comfy
+        try:
+            m, info = comfy.birefnet_mask(rgb3(img))
+            used.add("cutout", 3, f"ComfyUI BiRefNet ({info['model']})")
+            img.notes.append(f"rung 3 BiRefNet via {info['server']}: {info['seconds']} s, {info['queued_ahead']} jobs ahead")
+            return m.astype(np.float32), "birefnet"
+        except comfy.Unavailable as e:
+            img.notes.append(f"fell back: {e}")
+            method = "auto"
     cv2 = probe("cv2")
     if method == "grabcut" and cv2 is None:
         raise SystemExit("cutout: GrabCut needs OpenCV (rung 2), which is absent or hidden; use --method key")
@@ -249,7 +259,7 @@ def cutout_mask(img, p, used):
         a8 = np.round(rgb3(img)[..., ::-1] * 255).astype(np.uint8)
         gm = np.zeros((h, w), np.uint8)
         bgd, fgd = np.zeros((1, 65), np.float64), np.zeros((1, 65), np.float64)
-        cv2.setRNGSeed(int(p.get("seed", 0)))
+        cv2.setRNGSeed(int(p.get("seed") or 0))
         cv2.grabCut(a8, gm, tuple(int(v) for v in rect), bgd, fgd, int(p.get("iterations", 5)), cv2.GC_INIT_WITH_RECT)
         used.add("cutout", 2, "OpenCV GrabCut")
         return ((gm == cv2.GC_FGD) | (gm == cv2.GC_PR_FGD)).astype(np.float32), "grabcut"
@@ -294,6 +304,8 @@ def mask_steps_from_args(a, with_image):
         steps.append({"op": f"mask.{op}", "params": params})
 
     if with_image:
+        if getattr(a, "text", None):
+            make("text", {"text": a.text, "seed": a.seed, "model": "Florence-2-large + sam2.1_hiera_base_plus"})
         if a.color or a.pick:
             p = {"tol": a.tol, "soft": a.soft}
             if a.pick:
@@ -350,7 +362,7 @@ def cmd_select(a):
     img = load(a.input, used)
     steps = mask_steps_from_args(a, True)
     if not steps:
-        raise SystemExit("select: give at least one of --color --pick --luma --edge --flood --rect --ellipse --polygon")
+        raise SystemExit("select: give at least one of --text --color --pick --luma --edge --flood --rect --ellipse --polygon")
     m = apply_mask_steps(img, None, steps, used)
     out = save_mask(m, out_for(a.input, a.output, "mask", ".png"), used)
     if a.recipe:
@@ -431,7 +443,8 @@ def cmd_cutout(a):
     if a.key:
         p["key"] = core.floats(a.key, 3)
     if a.method == "birefnet":
-        raise SystemExit("cutout: " + BIREFNET_ROUTE)
+        from . import comfy
+        p.update(model=comfy.BIREFNET, seed=None)  # BiRefNet is deterministic: no seed
     ext = None if Path(a.output or a.input).suffix.lower() in (".png", ".webp", ".tif", ".tiff") else ".png"
     r = core.edit_command(a, "cutout", [{"op": "cutout", "params": p}], ext)
     if a.mask_out:
@@ -466,8 +479,10 @@ def add_commands(sub, edit):
         p.add_argument("-o", "--output", help="mask PNG (never overwritten)")
         p.add_argument("--recipe", help="append the steps to this mask recipe.json")
 
-    p = sub.add_parser("select", help="make an 8-bit mask from an image: colour, luma, edge, flood, shapes")
+    p = sub.add_parser("select", help="make an 8-bit mask from an image: text (rung 3), colour, luma, edge, flood, shapes")
     p.add_argument("input")
+    p.add_argument("--text", help="select what this phrase names (rung 3: Florence-2 boxes into SAM 2.1 via ComfyUI)")
+    p.add_argument("--seed", type=int, default=1, help="seed for --text (recorded in the recipe)")
     mask_flags(p, True)
     p.set_defaults(fn=cmd_select)
     p = sub.add_parser("mask", help="edit a mask: grow, shrink, feather, invert, add/subtract/intersect, shapes")
@@ -476,7 +491,8 @@ def add_commands(sub, edit):
     mask_flags(p, False)
     p.set_defaults(fn=cmd_mask)
     p = edit("cutout", cmd_cutout, "remove the background: GrabCut (rung 2) or colour key (rung 1)")
-    p.add_argument("--method", choices=("auto", "grabcut", "key", "birefnet"), default="auto")
+    p.add_argument("--method", "--model", dest="method", choices=("auto", "grabcut", "key", "birefnet"), default="auto",
+                   help="birefnet: rung 3 via the local ComfyUI, falls back to auto when it cannot run")
     p.add_argument("--rect", help="x,y,w,h around the subject (GrabCut; default 4%% inset)")
     p.add_argument("--key", help="r,g,b background colour for --method key (default: border median)")
     p.add_argument("--tol", type=float, help="key tolerance, Lab Delta E (default 12)")
@@ -492,5 +508,6 @@ core.DOCTOR_GROUPS.append(lambda: {
     "mask grow/shrink": (2, "OpenCV") if probe("cv2") else (1, "NumPy disc"),
     "flood fill": (2, "scipy.ndimage.label") if probe("scipy.ndimage") else (1, "NumPy iterative fill"),
     "cutout": (2, "OpenCV GrabCut") if probe("cv2") else (1, "colour key + border flood"),
-    "cutout --method birefnet": (3, "not built: comfyui-gen route documented"),
+    "cutout --method birefnet": (3, "ComfyUI RemoveBackground + birefnet.safetensors (falls back)"),
+    "select --text": (3, "ComfyUI Florence-2-large + SAM 2.1 base_plus (no fallback for text)"),
 })
