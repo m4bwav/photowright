@@ -17,3 +17,5 @@ From the image-editing beat's literature list (D:/m4bwa/Claude/Projects/Ai/indie
 | Inkscape: Guide to a Vector Drawing Program | Tavmjong Bah | lead: free online at tavmjong.free.fr/INKSCAPE/MANUAL (GFDL); next free title to read for the vector rows |
 
 2026-11-18 (session 34): `book_harvest.py find` over every lead above found nothing on disk.
+
+2026-11-18 (session 35): Inkscape manual read (online, HTTP only); lessons and 12 build candidates in [inkscape-manual.md](inkscape-manual.md).

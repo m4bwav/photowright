@@ -1,0 +1,48 @@
+{
+  "askwright": 1,
+  "id": "photowright-release-2026-11-18",
+  "title": "photowright: release now?",
+  "context": "",
+  "asked_by": "photowright chain session 35",
+  "product": "Claude Code",
+  "session": "",
+  "working_dir": "D:\\m4bwa\\Claude\\Projects\\Ai\\photowright-s35",
+  "media_roots": [],
+  "questions": [
+    {
+      "id": "release",
+      "kind": "choice",
+      "title": "Release photowright 0.21.0",
+      "question": "photowright is at 0.21.0 with every coverage row built, evals 15/15 and the GPU routes measured. Make the repo public and release it now?",
+      "background": "You chose 'public at release'. Release means: make m4bwav/photowright public, tag v0.21.0, write the wiki, install it, add it to the plugin list. Nothing goes to a package registry.",
+      "why": "Going public and releasing is on the list that waits for you.",
+      "options": [
+        {
+          "id": "release",
+          "label": "Yes: public, tag, wiki, install"
+        },
+        {
+          "id": "private-tag",
+          "label": "Tag and install only, stay private"
+        },
+        {
+          "id": "wait",
+          "label": "Not yet"
+        }
+      ],
+      "guess": {
+        "option": "release",
+        "why": "The build plan is done and every check passes.",
+        "confidence": "medium"
+      },
+      "created": "2026-11-18T03:06:49-06:00",
+      "updated": "2026-11-18T03:06:49-06:00"
+    }
+  ],
+  "created": "2026-11-18T03:06:49-06:00",
+  "updated": "2026-11-18T03:06:49-06:00",
+  "project": {
+    "name": "photowright",
+    "path": "D:/m4bwa/Claude/Projects/Ai/photowright"
+  }
+}
