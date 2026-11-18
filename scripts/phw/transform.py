@@ -19,7 +19,8 @@ from .core import OPS, Used, load, probe, save, out_for, floats, to_lin, to_enc
 
 ESRGAN_ROUTE = ("upscale --method realesrgan is rung 3 and not built: run Real-ESRGAN (BSD-3-Clause, "
                 "https://github.com/xinntao/Real-ESRGAN) through comfyui-gen's ComfyUI upscale-model nodes; phw "
-                "downloads nothing. A model invents detail: flag text and faces in its output. Rung 1 Lanczos invents none.")
+                "downloads nothing. A model invents detail: record the step with invented_detail: true (as for "
+                "generative fill) and flag text and faces in its output. Rung 1 Lanczos invents none (invented_detail: false).")
 STITCH_REFUSAL = ("stitch needs OpenCV (rung 2: pip install opencv-python). There is no rung 1 stitcher: feature "
                   "matching, bundle adjustment and seam finding are not rebuilt in photowright. Hugin (GPL) is the "
                   "free app route.")
@@ -40,9 +41,45 @@ def bilinear(arr, X, Y, fill):
     return out.astype(np.float32), inside
 
 
-def remap(img, X, Y, used, op, fill=None):
+def shrink_map(X, Y):
+    """Per output pixel, how many source pixels one output step spans (largest axis of the Jacobian)."""
+    if X.shape[0] < 2 or X.shape[1] < 2:
+        return np.ones(X.shape, np.float64)
+    Xy, Xx = np.gradient(X)
+    Yy, Yx = np.gradient(Y)
+    return np.sqrt(np.maximum(Xx ** 2 + Yx ** 2, Xy ** 2 + Yy ** 2))
+
+
+def mip_sample(arr, X, Y, f, s):
+    """Prefiltered sampling: a Gaussian pyramid of arr, each output pixel read (bilinear) from the two
+    levels around log2 of its local shrink and blended (trilinear mip-mapping)."""
+    lev = np.clip(np.log2(np.maximum(s, 1.0)), 0, None)
+    n = int(np.ceil(lev.max())) + 1
+    n = max(1, min(n, int(np.log2(max(min(arr.shape[:2]), 1))) + 1))
+    lev = np.minimum(lev, n - 1)
+    pyr = gauss_pyr(arr, n)
+    k0 = np.floor(lev).astype(np.int64)
+    fr = (lev - k0)[..., None].astype(np.float32)
+    out = np.zeros(X.shape + (arr.shape[2],), np.float32)
+    inside = None
+    for k in range(n):
+        sel0, sel1 = k0 == k, (k0 + 1 == k) & (fr[..., 0] > 0)
+        if not (sel0.any() or sel1.any()):
+            continue
+        sc = 2.0 ** k
+        r, ins = bilinear(pyr[k], (X + 0.5) / sc - 0.5, (Y + 0.5) / sc - 0.5, f)
+        if k == 0:
+            inside = ins
+        out += np.where(sel0[..., None], r * (1 - fr), 0) + np.where(sel1[..., None], r * fr, 0)
+    if inside is None:
+        inside = (X >= -0.5) & (Y >= -0.5) & (X <= arr.shape[1] - 0.5) & (Y <= arr.shape[0] - 0.5)
+    return np.where(inside[..., None], out, np.asarray(f, np.float32)).astype(np.float32)
+
+
+def remap(img, X, Y, used, op, fill=None, prefilter=False):
     """Resample img at X, Y in linear light (premultiplied when alpha). Outside: transparent when
-    the image has alpha, else the fill colour (default black)."""
+    the image has alpha, else the fill colour (default black). prefilter: where the map shrinks the
+    image by more than 2x, sample a Gaussian pyramid instead (inverse mapping alone aliases)."""
     col = to_lin(img.color())
     nc = col.shape[2]
     if img.alpha:
@@ -52,8 +89,12 @@ def remap(img, X, Y, used, op, fill=None):
     else:
         arr = col
         f = to_lin(np.asarray(fill if fill is not None else [0.0] * nc, np.float32)).tolist()
+    s = shrink_map(X, Y) if prefilter else None
     cv2 = probe("cv2")
-    if cv2 is not None and arr.shape[2] <= 4:
+    if s is not None and float(s.max()) > 2.0:
+        r = mip_sample(arr, X, Y, f, s)
+        used.add(op, 1, f"own mip-mapped sampling in linear light (prefiltered, max shrink {float(s.max()):.1f}x)")
+    elif cv2 is not None and arr.shape[2] <= 4:
         r = cv2.remap(arr, X.astype(np.float32), Y.astype(np.float32), cv2.INTER_LINEAR,
                       borderMode=cv2.BORDER_CONSTANT, borderValue=tuple(f) + (0,) * (4 - len(f)))
         if r.ndim == 2:
@@ -93,7 +134,7 @@ def op_warp(img, p, used):
     D = mesh_field((h, w), p["grid"], p["moves"])
     yy, xx = np.mgrid[:h, :w].astype(np.float64)
     # backward map: the output pixel at p shows the source at p - D(p)
-    return remap(img, xx - D[..., 0], yy - D[..., 1], used, "warp", p.get("fill"))
+    return remap(img, xx - D[..., 0], yy - D[..., 1], used, "warp", p.get("fill"), p.get("prefilter", False))
 
 
 # ---------------------------------------------------------------- perspective
@@ -140,7 +181,7 @@ def op_perspective(img, p, used):
     X = (Hi[0, 0] * xx + Hi[0, 1] * yy + Hi[0, 2]) / den
     Y = (Hi[1, 0] * xx + Hi[1, 1] * yy + Hi[1, 2]) / den
     p["homography"] = [[round(float(v), 9) for v in row] for row in H]
-    return remap(img, X, Y, used, "perspective", p.get("fill"))
+    return remap(img, X, Y, used, "perspective", p.get("fill"), p.get("prefilter", False))
 
 
 # ---------------------------------------------------------------- upscale
@@ -149,6 +190,7 @@ def op_upscale(img, p, used):
         raise SystemExit("upscale: " + ESRGAN_ROUTE)
     r = core.op_resize(img, {"width": p["width"], "height": p["height"], "filter": "lanczos"}, used)
     r.notes.append("Lanczos in linear light: no detail invented. A rung 3 model would invent detail; flag text and faces then.")
+    p["invented_detail"] = False
     return r
 
 
@@ -272,6 +314,10 @@ def op_stack(img, p, used):
         used.add("stack.exposure", 1, "own Mertens exposure fusion (Laplacian pyramid)")
         img.notes.append("inputs are assumed aligned (tripod or aligned beforehand)")
         return img.with_color(mertens(imgs).astype(np.float32))
+    if mode == "median":
+        used.add("stack.median", 1, "NumPy per-pixel median (clean plate)")
+        img.notes.append("inputs are assumed aligned; the median keeps what most frames agree on")
+        return img.with_color(np.median(np.stack(imgs), axis=0).astype(np.float32))
     if mode == "focus":
         used.add("stack.focus", 1, "own Laplacian-pyramid focus stack (max coefficient)")
         img.notes.append("inputs are assumed aligned and of equal magnification")
@@ -338,7 +384,7 @@ def cmd_warp(a):
     for m in moves:
         if not (0 <= m[0] <= cols and 0 <= m[1] <= rows):
             raise SystemExit(f"warp: control point {int(m[0])},{int(m[1])} is outside the {cols}x{rows} grid")
-    p = {"grid": [cols, rows], "moves": moves}
+    p = {"grid": [cols, rows], "moves": moves, "prefilter": not a.no_prefilter}
     if a.fill:
         p["fill"] = floats(a.fill)
     return one_step(a, "warp", p)
@@ -356,7 +402,7 @@ def cmd_perspective(a):
         dst = pts(a.dst) if a.dst else [[0, 0], [w, 0], [w, h], [0, h]]
     else:
         raise SystemExit("perspective: give --src (and --dst) 4 points, or --keystone v[,h]")
-    p = {"src": src, "dst": dst}
+    p = {"src": src, "dst": dst, "prefilter": not a.no_prefilter}
     if a.size:
         p["size"] = [int(v) for v in floats(a.size, 2)]
     if a.fill:
@@ -375,7 +421,7 @@ def cmd_upscale(a):
         nh = a.height or max(1, round(h * a.width / w))
     else:
         nw, nh = max(1, round(w * a.scale)), max(1, round(h * a.scale))
-    return one_step(a, "upscale", {"width": nw, "height": nh, "method": "lanczos"})
+    return one_step(a, "upscale", {"width": nw, "height": nh, "method": "lanczos", "invented_detail": False})
 
 
 def multi(a, tag, p):
@@ -401,12 +447,14 @@ def add_commands(sub, edit):
     p.add_argument("--grid", default="4,4", help="cols,rows cells (control points are (cols+1)x(rows+1))")
     p.add_argument("--move", help="'i,j,dx,dy; ...' move control point (column i, row j) by dx,dy px")
     p.add_argument("--fill", help="r,g,b 0..1 for uncovered areas (images without alpha)")
+    p.add_argument("--no-prefilter", action="store_true", help="plain inverse mapping even where the image shrinks >2x")
     p = edit("perspective", cmd_perspective, "4-point perspective (homography) or keystone correction")
     p.add_argument("--src", help="'x,y x,y x,y x,y' corners in the photo (TL TR BR BL)")
     p.add_argument("--dst", help="where they go (default: the image frame)")
     p.add_argument("--keystone", help="v[,h]: v>0 = top edge narrower by v x width (camera tilted up)")
     p.add_argument("--size", help="W,H of the output (default: the input size)")
     p.add_argument("--fill", help="r,g,b 0..1 for uncovered areas (images without alpha)")
+    p.add_argument("--no-prefilter", action="store_true", help="plain inverse mapping even where the image shrinks >2x")
     p = edit("upscale", cmd_upscale, "upscale: Lanczos in linear light (rung 1); Real-ESRGAN stub (rung 3)")
     p.add_argument("--scale", type=float, default=2.0)
     p.add_argument("--width", type=int)
@@ -421,7 +469,7 @@ def add_commands(sub, edit):
         p.add_argument("--bits", type=int, choices=(8, 16))
         p.set_defaults(fn=fn)
         if name == "stack":
-            p.add_argument("--mode", choices=("exposure", "focus"), default="exposure")
+            p.add_argument("--mode", choices=("exposure", "focus", "median"), default="exposure")
             p.add_argument("--method", choices=("own", "opencv"), default="own")
         else:
             p.add_argument("--mode", choices=("panorama", "scans"), default="panorama")

@@ -73,3 +73,11 @@ Date: 2026-11-16. Licences are named with the LICENSE page they come from. This 
 | HDR + tone map | yes | OpenCV |
 
 GPL tools (Hugin, enblend, enfuse) run as separate processes and are not linked, so photowright's own licence is unaffected: https://www.gnu.org/licenses/gpl-faq.html#MereAggregation
+
+## 9. Notes from Szeliski (phw 0.7.0)
+
+- Prefilter: inverse mapping alone aliases where a warp shrinks the image by more than about 2x. `warp` and `perspective` now sample a Gaussian pyramid at log2 of the local shrink (trilinear mip-mapping) there; a zone plate shrunk 4x scored RMS 0.077 against a Lanczos reference, 0.373 without the prefilter. `--no-prefilter` keeps plain sampling. Source: Szeliski, Computer Vision: Algorithms and Applications, 2nd ed. (2022), https://szeliski.org/Book/.
+- Pyramid blend: a layer with `"pyramid": true` is pasted band by band with the mask blurred to each band's scale (Burt and Adelson 1983), so a paste whose exposure differs leaves no step. Source: Szeliski, Computer Vision: Algorithms and Applications, 2nd ed. (2022), https://szeliski.org/Book/.
+- Median stack: `stack --mode median` keeps per pixel what most aligned frames agree on (a clean plate when people walk through). Source: Szeliski, Computer Vision: Algorithms and Applications, 2nd ed. (2022), https://szeliski.org/Book/.
+- Stitch projection: a flat (planar) projection only works under about 90 degrees of view; wider panoramas need cylindrical or spherical projection (OpenCV's PANORAMA mode warps spherically; Hugin offers the rest). Source: Szeliski, Computer Vision: Algorithms and Applications, 2nd ed. (2022), https://szeliski.org/Book/.
+- Upscale: any single-image super-resolution model invents detail and is recorded with `invented_detail: true`, like generative fill; Lanczos records false. Source: Szeliski, Computer Vision: Algorithms and Applications, 2nd ed. (2022), https://szeliski.org/Book/.
