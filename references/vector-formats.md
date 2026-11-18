@@ -1,5 +1,11 @@
 # Vector formats
 
+## Using phw (moved from SKILL.md, 2026-11-17)
+
+- `PHW export <svg> --format svg|pdf|eps|dxf -o <file>`. For a laser or vinyl cutter: `--format dxf --units mm`, and set the physical size with `--dpi` (mm = px / dpi x 25.4; 256 px at 130.048 dpi = 50 mm); `--drop ffffff` leaves a white background out of the cut. phw writes R12-style DXF with $EXTMAX in the header, which is how the width is checked.
+- EPS needs Ghostscript to preview; `--check` reopens SVG or PDF exports in Inkscape and compares.
+
+
 Checked 2026-11-16. Sources per claim; "unverified" where not read today.
 
 ## SVG: the subset every program opens

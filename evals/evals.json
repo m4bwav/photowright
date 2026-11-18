@@ -115,16 +115,17 @@
       "decoy": true
     },
     {
-      "id": "action-trace-logo",
+      "id": "action-layered-psd",
       "kind": "action",
-      "prompt": "Trace tests/fixtures/logo.png to a clean SVG at out/logo.svg and check that it matches the original.",
+      "prompt": "Make a layered Photoshop file at out/poster.psd, 256x256: tests/fixtures/dark-photo.jpg as a bottom layer named 'background', and tests/fixtures/logo.png on top as a layer named 'mark' with Multiply blend at 70% opacity. Keep the layers editable, don't flatten, and keep the layer recipe at out/poster.json so I can rebuild the file later.",
       "expectations": [
-        "out/logo.svg exists and renders back to the source with overlap >= 0.95 (phw vcheck)",
-        "no more than 8 paths"
+        "out/poster.psd opens as a PSD with 2 layers named background and mark (phw open)",
+        "mark layer blend multiply, opacity 0.7 +- 0.02 (differs from the poster.psd fixture so a copy fails)",
+        "out/poster.json is a photowright layers recipe that phw run rebuilds into a PSD with the same layers"
       ],
       "evidence": {
         "type": "command",
-        "run": "python evals/check.py trace",
+        "run": "python evals/check.py psd",
         "expect": "exit 0"
       },
       "tools": [
@@ -138,7 +139,7 @@
       ],
       "max_turns": 30,
       "runs": 1,
-      "baseline": "2026-11-17 claude -p sonnet, no plugin: wrote its own tracer; out/logo.svg passes vcheck (overlap >= 0.95, <= 8 paths). PASS (case does not separate the arms on this simple logo)."
+      "baseline": "2026-11-17 claude -p sonnet, no plugin, check.py hidden: 0/2 (no replayable photowright layers recipe). FAIL (skill needed). Two earlier runs with check.py visible passed by reading it (L-20261118-1)."
     },
     {
       "id": "action-dxf-laser",
