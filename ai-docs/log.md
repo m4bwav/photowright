@@ -114,3 +114,5 @@
 - 2026-11-18 (session 47): ran the 4 remaining beat search rows; leads lineart-trace (centreline) and GIMP 3.2.8 gimp-batch-folder; nothing else new. Moebius still waits on Mark.
 - 2026-11-18 (session 48): lineart-trace (UCB-BioE-Anderson-Lab, MIT, numpy+opencv) licence confirmed permissive; centreline bake-off blocked: installing/running the package in a scratch venv was refused by the permission gate. Waits on Mark with Moebius. No agent-only work left; chain stops.
 - 2026-11-18: chain_loop restart stopped after 8 sessions (no-progress): only third-party installs remain (Moebius ComfyUI node + weights; lineart-trace venv). The auto-mode classifier also refused the lineart-trace pip install from the main session despite Mark's 'don't ask me'; needs a Bash permission rule or a manual install.
+
+- 2026-11-18 session 49: lineart-venv empty, lineart-trace not on PyPI (GitHub only); install refused by permission gate, bake-off not run. Moebius licences confirmed: node Apache-2.0, weights MIT (Moebius + PixelHacker VAE). Waits on Mark: lineart-trace install into the venv, Moebius node install.
