@@ -26,14 +26,29 @@ def run(*args):
     return r
 
 
-def server_up():
+LIVE_WAIT = os.environ.get("PHW_COMFY_TEST_WAIT", "240")
+
+
+def live_skip_reason():
+    """None when the live tests may run: server answers within 3 s, rung 3 not hidden and the
+    queue is empty. A busy queue (another session's render) is skipped, never waited on, so the
+    full suite always finishes; the live tests also cap each wait at PHW_COMFY_TEST_WAIT s."""
     if os.environ.get("PHW_RUNG_MAX") and int(os.environ["PHW_RUNG_MAX"]) < 3:
-        return False
+        return "rung 3 hidden"
     try:
-        comfy.get_json("/system_stats", timeout=20)
-        return True
-    except comfy.Unavailable:
-        return False
+        json.loads(comfy._req("/system_stats", timeout=3, tries=1))
+        q = json.loads(comfy._req("/queue", timeout=3, tries=1))
+    except (comfy.Unavailable, ValueError):
+        return "ComfyUI server unreachable"
+    ahead = len(q.get("queue_running", [])) + len(q.get("queue_pending", []))
+    return f"ComfyUI queue busy ({ahead} job(s))" if ahead else None
+
+
+LIVE_SKIP = live_skip_reason()
+
+
+def server_up():
+    return LIVE_SKIP is None
 
 
 def picture(path, k=1):
@@ -246,9 +261,12 @@ class Fallback(unittest.TestCase):
         self.assertEqual(Image.open(r["output"]).size, (192, 160))
 
 
-@unittest.skipUnless(server_up(), "ComfyUI server unreachable or rung 3 hidden")
+@unittest.skipUnless(server_up(), LIVE_SKIP or "")
 class Live(unittest.TestCase):
     def setUp(self):
+        env = mock.patch.dict(os.environ, {"PHW_COMFY_WAIT": LIVE_WAIT, "PHW_COMFY_MAX_AHEAD": "0"})
+        env.start()
+        self.addCleanup(env.stop)
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)
         self.d = Path(self.tmp.name)
