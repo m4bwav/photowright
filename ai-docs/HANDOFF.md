@@ -1,5 +1,7 @@
 # HANDOFF: photowright
 
+2026-11-18 (session 35, chain end): 8199 idle: model routes MEASURED ([notes/bakeoff/model-routes-2026-11-18.md](notes/bakeoff/model-routes-2026-11-18.md)): SeedVR2 +7.3 dB on text, worse/tied on photos (stays opt-in); fill `--model lama` seam ratio 1.57 beats own 2.68, qwen-edit 9.15 (prompted fills only). Model-judged evals on 0.21.0: 15/15 (triggers 8/8, decoys 4/4, actions 3/3). evergreen-worth heavy: actions 3/3 with skill vs 0/3 baseline, ~152-token description, ~1.9k-token body: final **KEEP**. Inkscape manual read: [notes/inkscape-manual.md](notes/inkscape-manual.md) (12 build candidates, 3 already built). Next: build Inkscape candidates 1-7, 9, 12 (trace node fixtures, speckles, stack mode, exact brightness steps, pre-blur, absolute simplify tolerance, vcheck path parser, mm viewBox); consider making lama the rung 3 default for unprompted fills.
+
 2026-11-18 (session 34): 8199 busy at start: SeedVR2/qwen-edit still unmeasured. Built phw 0.21.0 (branch s34-pdfopen): PDF/EPS open and video frames (scripts/phw/docio.py, `doc.pdf[2]`, `clip.mp4[48]`, `frames` command; tests/test_phw20.py). No coverage row is open any more. Next: re-run the model-judged skill evals (evals/run.py) on 0.21.0, evergreen-worth heavy for the final KEEP, read Tavmjong Bah's free Inkscape manual (books.md; no other lead is on disk), model-route checks whenever 8199 is idle; release and public wait on Mark.
 
 2026-11-18 (session 33): 8199 busy at start (H3): SeedVR2/qwen-edit still unmeasured. Built phw 0.20.0 (branch s33-rung2): `camraw` (Camera Raw Basic panel), HEIC/JXL/camera raw read (scripts/phw/rawio.py via core.LOAD_HOOKS; pillow-heif and pillow-jxl-plugin absent so they refuse with the pip line; pillow-jxl-plugin is GPL-3.0, optional only), `inspect --c2pa-verify` (c2patool, not installed); tests/test_phw19.py. Ladder eval done: full suite with PHW_RUNG_MAX=3 passes in all eight groups, see [notes/ladder-evals-2026-11-18.md](notes/ladder-evals-2026-11-18.md). Every coverage-gap row is now built or partial except PDF/EPS open and video layers. Next: re-run the model-judged skill evals (evals/run.py) on 0.20.0, then evergreen-worth heavy for the final KEEP, books (ai-docs/notes/books.md leads), model-route checks whenever 8199 is idle; release and public wait on Mark.
@@ -58,3 +60,10 @@ Beat image-editing: built 2026-11-17 at Ai/indie-ai-scout/beats/image-editing (3
 
 ## Szeliski book
 Done 2026-11-17: PDF downloaded (personal use, no reposting) to Ai/technique-harvest/books-cache/szeliski; notes in technique-harvest/ai-docs/books/szeliski-cvaa-2e/notes.md; photowright summary and proposals in ai-docs/notes/szeliski.md.
+
+## What waits on Mark (as of 2026-11-18 session 35)
+
+1. Release and going public: askwright set `photowright-release-2026-11-18` in [ask/photowright-release-2026-11-18](../ask/photowright-release-2026-11-18) (serve with `python D:/m4bwa/Claude/Projects/Ai/askwright/skills/askwright/scripts/ask.py serve D:/m4bwa/Claude/Projects/Ai/photowright/ask/photowright-release-2026-11-18`). He chose "public at release" on 2026-11-17; a yes means: make m4bwav/photowright public, tag v0.21.0, wiki (wikiwright), install, add to Ai/plugin-backlog/existing-plugins.md.
+2. ComfyUI checks: none owed now (SeedVR2, lama, qwen-edit measured 2026-11-18). Still unwired: relight (IC-Light) and layers (layerdiffuse); they need 8199 idle, not Mark.
+3. Owner items on the image-editing everscout beat (Ai/indie-ai-scout/beats/image-editing): study outline approval, 4 candidate metrics.
+4. A live Krita bridge check only if Krita is ever installed.
