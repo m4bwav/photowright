@@ -66,3 +66,4 @@
 - 2026-11-18 (session 28): De-Interlace built: `deinterlace --field odd|even --fill dup|interp` (kept field bit-exact; combed smooth image restored within 3/255 of the progressive original).
 - 2026-11-18 (session 28): NTSC Colors built: `ntsc --hi 1.1 --lo -0.2` scales YIQ chroma so Y+C and Y-C stay in range (within 1/255); safe pixels returned unchanged.
 - 2026-11-18 (session 28): Liquify extras built: `liquify --mode twirl|pucker|bloat` brushes at each stroke point (outside radius bit-exact, flat unchanged, bloat disc area >1.3x, pucker <0.8x, twirl moves a bar off its row). Suite: 210 passed (all rungs), 200 passed + 10 skipped (PHW_RUNG_MAX=1); the full suite takes ~8 min with scipy present vs ~1 min at rung 1, so run it in the background.
+- 2026-11-18 (session 28) wrap-up: nothing new beyond the background-suite trap already logged; HANDOFF updated.
