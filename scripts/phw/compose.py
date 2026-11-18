@@ -160,7 +160,9 @@ class Layer:
     mask: float32 h x w at (mask_x, mask_y); mask_default is its value outside that rectangle."""
 
     def __init__(self, name="Layer", px=None, x=0, y=0, opacity=1.0, blend="normal", visible=True,
-                 mask=None, mask_x=0, mask_y=0, mask_default=0.0, clip=False, children=None, group=False):
+                 mask=None, mask_x=0, mask_y=0, mask_default=0.0, clip=False, children=None, group=False,
+                 pyramid=False):
+        self.pyramid = bool(pyramid)
         self.name, self.px, self.x, self.y = name, px, int(x), int(y)
         self.opacity, self.blend, self.visible = float(opacity), blend, bool(visible)
         self.mask, self.mask_x, self.mask_y, self.mask_default = mask, int(mask_x), int(mask_y), float(mask_default)
@@ -264,8 +266,28 @@ def composite_stack(layers, cb, ab, w, h, space):
             a = a * base_a
         elif not lay.clip:
             base_a = a
-        cb, ab = composite_over(cb, ab, c, a * lay.opacity, lay.blend)
+        if lay.pyramid and lay.blend == "normal":
+            have = place(lay.px, lay.x, lay.y, w, h)[..., 3:4] > 0
+            cb, ab = pyramid_over(cb, ab, c, a * lay.opacity, have)
+        else:
+            cb, ab = composite_over(cb, ab, c, a * lay.opacity, lay.blend)
     return cb, ab
+
+
+def pyramid_over(cb, ab, cs, as_, have=None):
+    """Multiband (Laplacian pyramid) paste: each frequency band is blended with the alpha blurred to
+    that band's scale, so a paste whose exposure differs leaves no step and no wide halo (Burt and
+    Adelson 1983). Where the layer is empty its colour is taken from the backdrop."""
+    from .transform import collapse, gauss_pyr, lap_pyr, levels_for
+    n = levels_for(cb.shape)
+    a = as_[..., 0]
+    src = np.where(as_ > 0 if have is None else have, cs, cb)
+    ga = gauss_pyr(a[..., None], n)
+    la, lb = lap_pyr(src, n), lap_pyr(cb, n)
+    c = np.clip(collapse([g * x + (1 - g) * y for g, x, y in zip(ga, la, lb)]), 0, None).astype(np.float32)
+    a2 = (as_ + ab * (1 - as_)).astype(np.float32)
+    c = np.where(ab > 0, c, cs).astype(np.float32)
+    return c, a2
 
 
 def composite_doc(doc, space="gamma", background=None):
@@ -418,7 +440,8 @@ def layers_from_specs(specs, base, w, h, used, notes):
     for i, L in enumerate(specs):
         t = L.get("type", "image")
         name = L.get("name") or f"{t} {i + 1}"
-        common = dict(opacity=float(L.get("opacity", 1.0)), visible=L.get("visible", True), clip=L.get("clip", False))
+        common = dict(opacity=float(L.get("opacity", 1.0)), visible=L.get("visible", True), clip=L.get("clip", False),
+                      pyramid=bool(L.get("pyramid", False)))
         if t == "group":
             lay = Layer(name, group=True, blend=norm_mode(L.get("blend", "pass")),
                         children=layers_from_specs(L.get("layers", []), base, w, h, used, notes), **common)
@@ -439,6 +462,8 @@ def layers_from_specs(specs, base, w, h, used, notes):
             else:
                 raise ValueError(f"unknown layer type {t}")
             lay = Layer(name, px, x, y, blend=norm_mode(L.get("blend", "normal")), **common)
+            if lay.pyramid:
+                used.add("layers.pyramid", 1, "own Laplacian-pyramid (multiband) paste")
         if L.get("mask"):
             lay.mask, lay.mask_x, lay.mask_y, lay.mask_default = mask_from_spec(L["mask"], base, w, h)
         if L.get("effects") and not lay.group:

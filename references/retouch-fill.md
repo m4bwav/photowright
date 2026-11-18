@@ -32,3 +32,7 @@ Every generative fill goes into the recipe flagged as invented, with model and s
 
 ## On disk
 No `models/inpaint` folder. `comfyui_layerstyle` has a LaMa node (`py/lama.py`); no weights present.
+
+## Fill routing (phw 0.7.0)
+
+Thin defects (scratches, wires, dust) go to diffusion inpainting (`fill --method membrane` or `telea`); texture (grass, gravel, wall) to patch fill (`--method patch`); holes that cross straight lines to priority-ordered exemplar fill (patch, structure first); big semantic holes (a person, a car) to a model (`--model lama`, rung 3). Source: Szeliski, Computer Vision: Algorithms and Applications, 2nd ed. (2022), https://szeliski.org/Book/.

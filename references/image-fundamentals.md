@@ -121,3 +121,8 @@ Rules:
 
 Load: open -> check pixel limit -> `exif_transpose` -> read ICC -> convert to working space -> float32 straight alpha.
 Save: composite -> (linear to encoded if needed) -> convert to output profile -> quantise with dither -> embed ICC, EXIF, XMP -> encode with format-specific options above.
+
+## 10. Resampling kernel notes (phw 0.7.0)
+
+- Pillow's BICUBIC uses the Keys cubic with a = -0.5 (libImaging/Resample.c, `bicubic_filter`), the value that reproduces linear ramps exactly; a = -1 (some older tools) overshoots more. No change needed in phw. Sources: Pillow source https://github.com/python-pillow/Pillow/blob/main/src/libImaging/Resample.c ; Szeliski, Computer Vision: Algorithms and Applications, 2nd ed. (2022), https://szeliski.org/Book/.
+- Levels, curves and equalisation on each RGB channel wash colour out after a strong gamma; phw applies them to luma and scales the colour by the luma ratio (`--on luminance`, the default since 0.7.0). Measured in tests/test_phw6.py on a six-patch colour chart. Source: Szeliski, Computer Vision: Algorithms and Applications, 2nd ed. (2022), https://szeliski.org/Book/.

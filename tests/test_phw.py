@@ -180,7 +180,7 @@ class TestAdjust(Base):
         return run("adjust", src or self.src, *args)
 
     def test_levels_reference(self):
-        out = arr(self.adj("--levels", "0.1,0.7,1.5,0.05,0.95")["output"])
+        out = arr(self.adj("--levels", "0.1,0.7,1.5,0.05,0.95", "--on", "channels")["output"])
         x = np.round(self.rgb * 255) / 255
         ref = 0.05 + np.clip((x - 0.1) / 0.6, 0, 1) ** (1 / 1.5) * 0.9
         self.assertLess(np.abs(out - ref).max(), self.tol)

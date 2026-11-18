@@ -40,7 +40,7 @@ try:
 except Exception:  # pragma: no cover - Pillow built without LittleCMS
     ImageCms = None
 
-VERSION = "0.6.0"
+VERSION = "0.7.0"
 ROOT = Path(__file__).resolve().parent.parent.parent
 
 # Hooks filled by the other modules of the package (masks, compose, layered).
@@ -531,21 +531,98 @@ def hsv_to_rgb(h, s, v):
 
 
 # ---------------------------------------------------------------- ops (recipe steps)
+LUMA = np.array([0.2126, 0.7152, 0.0722], np.float32)
+
+
+def on_luma(c, fn):
+    """Apply a tone function to luma (Rec. 709 weights on encoded values) and scale the colour by
+    the luma ratio, so hue and saturation survive (per-channel curves wash colour out)."""
+    y = (c[..., :3] * LUMA).sum(axis=2, keepdims=True)
+    y2 = fn(y)
+    safe = np.maximum(y, 1e-6)
+    out = np.where(y > 1e-6, c[..., :3] * (y2 / safe), y2)
+    out = np.clip(out, 0, 1).astype(np.float32)
+    return np.concatenate([out, c[..., 3:]], axis=2) if c.shape[2] > 3 else out
+
+
+def tone(img, p, fn, tool):
+    """Run fn on luma for colour images when p['on'] == 'luminance', else on every channel.
+    Recipes from before 0.7.0 have no 'on' key and replay per channel, as they were made."""
+    c = img.color()
+    if p.get("on", "channels") == "luminance" and c.shape[2] >= 3:
+        return on_luma(c, fn), tool + " on luminance"
+    return fn(c), tool
+
+
 def op_levels(img, p, used):
     ib, iw, g = p.get("in_black", 0.0), p.get("in_white", 1.0), p.get("gamma", 1.0)
     ob, ow = p.get("out_black", 0.0), p.get("out_white", 1.0)
-    v = np.clip((img.color() - ib) / max(iw - ib, 1e-6), 0, 1) ** (1.0 / g)
-    used.add("adjust.levels", 1, "NumPy")
-    return img.with_color(ob + v * (ow - ob))
+
+    def fn(v):
+        return ob + np.clip((v - ib) / max(iw - ib, 1e-6), 0, 1) ** (1.0 / g) * (ow - ob)
+    r, tool = tone(img, p, fn, "NumPy")
+    used.add("adjust.levels", 1, tool)
+    return img.with_color(r)
 
 
 def op_curves(img, p, used):
+    ch = p.get("channel", "rgb")
+    if ch == "rgb":
+        r, tool = tone(img, p, lambda v: monotone_curve(p["points"], v), "NumPy monotone cubic")
+        used.add("adjust.curves", 1, tool)
+        return img.with_color(r)
     c = img.color().copy()
-    chans = {"rgb": range(img.nc), "r": [0], "g": [1], "b": [2]}[p.get("channel", "rgb")]
-    for i in chans:
-        c[..., i] = monotone_curve(p["points"], c[..., i])
+    i = {"r": 0, "g": 1, "b": 2}[ch]
+    c[..., i] = monotone_curve(p["points"], c[..., i])
     used.add("adjust.curves", 1, "NumPy monotone cubic")
     return img.with_color(c)
+
+
+def _eq_map(v, bins=256):
+    """Cumulative-histogram mapping (bin -> 0..1) of a 1-D sample."""
+    h, _ = np.histogram(np.clip(v, 0, 1), bins=bins, range=(0, 1))
+    if not h.any():
+        return np.linspace(0, 1, bins)
+    cdf = np.cumsum(h).astype(np.float64)
+    lo = cdf[np.nonzero(h)[0][0]]
+    return np.clip((cdf - lo) / max(cdf[-1] - lo, 1), 0, 1)
+
+
+def equalize(y, strength=1.0, tiles=0, bins=256):
+    """Histogram equalisation of a HxWx1 plane, mixed with the input by strength. tiles > 0: one curve
+    per tile on a tiles x tiles grid, bilinearly interpolated between tile centres (no block seams)."""
+    h, w = y.shape[:2]
+    y2 = y[..., 0]
+    idx = np.clip((y2 * (bins - 1)).round().astype(np.int64), 0, bins - 1)
+    if not tiles:
+        out = _eq_map(y2.ravel(), bins)[idx]
+    else:
+        ty, tx = max(1, min(tiles, h)), max(1, min(tiles, w))
+        ys, xs = np.linspace(0, h, ty + 1).astype(int), np.linspace(0, w, tx + 1).astype(int)
+        maps = np.array([[_eq_map(y2[ys[j]:ys[j + 1], xs[i]:xs[i + 1]].ravel(), bins) for i in range(tx)]
+                         for j in range(ty)])
+        cy, cx = (ys[:-1] + ys[1:]) / 2.0, (xs[:-1] + xs[1:]) / 2.0
+        gy = np.interp(np.arange(h) + 0.5, cy, np.arange(ty))
+        gx = np.interp(np.arange(w) + 0.5, cx, np.arange(tx))
+        j0 = np.clip(np.floor(gy).astype(int), 0, max(ty - 2, 0))
+        i0 = np.clip(np.floor(gx).astype(int), 0, max(tx - 2, 0))
+        j1, i1 = np.minimum(j0 + 1, ty - 1), np.minimum(i0 + 1, tx - 1)
+        fy, fx = np.clip(gy - j0, 0, 1)[:, None], np.clip(gx - i0, 0, 1)[None, :]
+        J0, J1, I0, I1 = j0[:, None], j1[:, None], i0[None, :], i1[None, :]
+        out = (maps[J0, I0, idx] * (1 - fy) * (1 - fx) + maps[J0, I1, idx] * (1 - fy) * fx
+               + maps[J1, I0, idx] * fy * (1 - fx) + maps[J1, I1, idx] * fy * fx)
+    s = float(strength)
+    return (y2 * (1 - s) + out * s)[..., None].astype(np.float32)
+
+
+def op_equalize(img, p, used):
+    s, t = float(p.get("strength", 1.0)), int(p.get("tiles", 0))
+    p2 = dict(p, on=p.get("on", "luminance"))
+    kind = f"tiled {t}x{t}" if t else "global"
+    r, tool = tone(img, p2, lambda v: np.concatenate([equalize(v[..., i:i + 1], s, t) for i in range(v.shape[2])],
+                                                      axis=2), f"NumPy histogram equalisation ({kind})")
+    used.add("adjust.equalize", 1, tool)
+    return img.with_color(r)
 
 
 def op_exposure(img, p, used):
@@ -691,6 +768,34 @@ def median_filter(ch, r):
     return np.median(np.stack(stack), axis=0)
 
 
+def bilateral_lab(c, ss, sc, used):
+    """Bilateral filter that weighs neighbours by whole-colour distance in CIE Lab (Delta E), so all
+    channels share one weight per neighbour (per-channel weights fringe colour at edges). Averages in
+    linear light."""
+    from .masks import rgb_to_lab
+    rgb = np.repeat(c, 3, axis=2) if c.shape[2] == 1 else c[..., :3]
+    lab = rgb_to_lab(rgb).astype(np.float32)
+    lin = to_lin(c)
+    r = max(1, int(np.ceil(2 * ss)))
+    pl = np.pad(lab, ((r, r), (r, r), (0, 0)), mode="reflect")
+    pc = np.pad(lin, ((r, r), (r, r), (0, 0)), mode="reflect")
+    h, w = c.shape[:2]
+    acc = np.zeros_like(lin)
+    wsum = np.zeros((h, w, 1), np.float32)
+    for dy in range(-r, r + 1):
+        for dx in range(-r, r + 1):
+            ws = np.exp(-(dx * dx + dy * dy) / (2 * ss * ss))
+            if ws < 1e-3:
+                continue
+            nl = pl[r + dy:r + dy + h, r + dx:r + dx + w]
+            d2 = ((nl - lab) ** 2).sum(axis=2, keepdims=True)
+            wt = (ws * np.exp(-d2 / (2 * sc * sc))).astype(np.float32)
+            acc += wt * pc[r + dy:r + dy + h, r + dx:r + dx + w]
+            wsum += wt
+    used.add("denoise", 1, f"NumPy bilateral, Lab Delta E (sigma space {ss:g}, colour {sc:g})")
+    return to_enc(acc / np.maximum(wsum, 1e-8))
+
+
 def op_denoise(img, p, used):
     c = img.color()
     cv2 = probe("cv2") if p.get("method", "auto") in ("auto", "nlmeans") else None
@@ -705,6 +810,8 @@ def op_denoise(img, p, used):
             img.notes.append("NL-means ran on 8-bit data (OpenCV colour NL-means is 8-bit only)")
         used.add("denoise", 2, "OpenCV fastNlMeansDenoising")
         return img.with_color(r.astype(np.float32) / 255.0)
+    if p.get("method") == "bilateral":
+        return img.with_color(bilateral_lab(c, float(p.get("sigma_space", 2.0)), float(p.get("sigma_color", 8.0)), used))
     r = int(p.get("radius", 1))
     used.add("denoise", 1, f"NumPy median {2 * r + 1}x{2 * r + 1}")
     return img.with_color(np.stack([median_filter(c[..., i], r) for i in range(c.shape[2])], axis=2))
@@ -712,7 +819,7 @@ def op_denoise(img, p, used):
 
 OPS = {"adjust.levels": op_levels, "adjust.curves": op_curves, "adjust.exposure": op_exposure,
        "adjust.white_balance": op_white_balance, "adjust.hue_sat": op_hue_sat, "adjust.lut": op_lut,
-       "adjust.bw": op_bw, "crop": op_crop, "resize": op_resize, "rotate": op_rotate,
+       "adjust.bw": op_bw, "adjust.equalize": op_equalize, "crop": op_crop, "resize": op_resize, "rotate": op_rotate,
        "sharpen": op_sharpen, "denoise": op_denoise,
        "convert": None}  # filled below (op_convert is defined after OPS)
 
@@ -804,10 +911,12 @@ def cmd_adjust(a):
     if a.levels:
         v = floats(a.levels, (2, 3, 5))
         keys = ["in_black", "in_white", "gamma", "out_black", "out_white"]
-        steps.append({"op": "adjust.levels", "params": dict(zip(keys, v))})
+        steps.append({"op": "adjust.levels", "params": dict(zip(keys, v), on=a.on)})
     if a.curves:
         pts = [floats(p, 2) for p in a.curves.split()]
-        steps.append({"op": "adjust.curves", "params": {"points": pts, "channel": a.channel}})
+        steps.append({"op": "adjust.curves", "params": {"points": pts, "channel": a.channel, "on": a.on}})
+    if a.equalize is not None:
+        steps.append({"op": "adjust.equalize", "params": {"strength": a.equalize, "tiles": a.tiles, "on": a.on}})
     if a.hue or a.saturation is not None or a.lightness:
         steps.append({"op": "adjust.hue_sat", "params": {"hue": a.hue or 0.0, "saturation": 1.0 if a.saturation is None else a.saturation, "lightness": a.lightness or 0.0}})
     if a.lut:
@@ -815,7 +924,7 @@ def cmd_adjust(a):
     if a.bw is not None:
         steps.append({"op": "adjust.bw", "params": {"weights": floats(a.bw, 3) if a.bw else [0.2126, 0.7152, 0.0722]}})
     if not steps:
-        raise SystemExit("adjust: give at least one of --exposure --levels --curves --wb --wb-gray --hue --saturation --lightness --lut --bw")
+        raise SystemExit("adjust: give at least one of --exposure --levels --curves --equalize --wb --wb-gray --hue --saturation --lightness --lut --bw")
     if a.mask:
         for s in steps:
             s["mask"] = str(Path(a.mask).resolve())
@@ -868,7 +977,8 @@ def cmd_sharpen(a):
 
 def cmd_denoise(a):
     return edit_command(a, "denoise", [{"op": "denoise", "params": {
-        "method": a.method, "strength": a.strength, "radius": a.radius}}])
+        "method": a.method, "strength": a.strength, "radius": a.radius,
+        "sigma_space": a.sigma_space, "sigma_color": a.sigma_color}}])
 
 
 def op_convert(img, p, used):
@@ -1178,6 +1288,10 @@ def build_parser():
     p.add_argument("--levels", help="in_black,in_white[,gamma[,out_black,out_white]] (0..1)")
     p.add_argument("--curves", help="points 'x,y x,y ...' in 0..1")
     p.add_argument("--channel", choices=("rgb", "r", "g", "b"), default="rgb")
+    p.add_argument("--on", choices=("luminance", "channels"), default="luminance",
+                   help="levels, curves and equalize act on luma (keeps colour, default) or on each channel")
+    p.add_argument("--equalize", type=float, nargs="?", const=1.0, help="histogram equalisation, strength 0..1 (default 1)")
+    p.add_argument("--tiles", type=int, default=0, help="equalize per tile on an N x N grid, curves interpolated (0 = global)")
     p.add_argument("--wb", help="linear gains r,g,b")
     p.add_argument("--wb-gray", help="x,y of a pixel that should be neutral")
     p.add_argument("--hue", type=float, help="degrees")
@@ -1206,8 +1320,10 @@ def build_parser():
     p.add_argument("--radius", type=float, default=1.0, help="Gaussian sigma in pixels")
     p.add_argument("--threshold", type=float, default=0.0)
     p.add_argument("--space", choices=("linear", "encoded"), default="linear")
-    p = edit("denoise", cmd_denoise, "denoise: OpenCV NL-means (rung 2) or median (rung 1)")
-    p.add_argument("--method", choices=("auto", "nlmeans", "median"), default="auto")
+    p = edit("denoise", cmd_denoise, "denoise: OpenCV NL-means (rung 2), Lab bilateral or median (rung 1)")
+    p.add_argument("--method", choices=("auto", "nlmeans", "bilateral", "median"), default="auto")
+    p.add_argument("--sigma-space", type=float, default=2.0, help="bilateral spatial sigma in px")
+    p.add_argument("--sigma-color", type=float, default=8.0, help="bilateral colour sigma in Lab Delta E")
     p.add_argument("--strength", type=float, default=10.0, help="NL-means h")
     p.add_argument("--radius", type=int, default=1, help="median radius")
     for fn in EXTRA_COMMANDS:
