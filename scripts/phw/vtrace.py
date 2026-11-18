@@ -10,10 +10,14 @@ Rungs:
                  least-squares cubic fit. Written from published papers (Selinger 2003 describes the
                  lattice walk; Schneider 1990 the fit); GPL Potrace source was never read.
   centreline   1 own Zhang-Suen thinning (1984) | 2 scikit-image skeletonize; then graph walk and fit
+  vtracer1     2 VTracer 1.x CLI (MIT, prebuilt, alpha), opt-in --backend vtracer1 via PHW_VTRACER or
+                 PATH; photo uses --preset poster (2026-11-17 bake-off: 0.884 vs 0.840 overlap)
   external     potrace CLI (GPL) and Inkscape object-trace (GPL), optional, never bundled
 """
 import importlib.util
 import json
+import os
+import re
 import shutil
 import subprocess
 import sys
@@ -418,6 +422,42 @@ def run_vtracer(img, opts, timeout=180):
     return doc, None
 
 
+VT1_PRESET = {"photo": ["--preset", "poster"]}  # 2026-11-17 bake-off: 0.884 vs 0.840 overlap on photo
+
+
+def find_vtracer1():
+    """VTracer 1.x CLI (MIT, prebuilt at github.com/visioncortex/vtracer/releases): PHW_VTRACER or PATH."""
+    if rung_max() < 2:
+        return None
+    exe = os.environ.get("PHW_VTRACER") or shutil.which("vtracer")
+    if not exe or not Path(exe).exists():
+        return None
+    try:
+        v = subprocess.run([exe, "--version"], capture_output=True, text=True, timeout=20).stdout
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    return exe if re.search(r"\b1\.\d", v) else None
+
+
+def run_vtracer1(img, kind, timeout=180):
+    """VTracer 1.x CLI in its own process. Returns (doc, None) or (None, reason)."""
+    exe = find_vtracer1()
+    if exe is None:
+        return None, "VTracer 1.x CLI not found (set PHW_VTRACER or put vtracer 1.x on PATH)"
+    with tempfile.TemporaryDirectory() as td:
+        pin, pout = Path(td) / "in.png", Path(td) / "out.svg"
+        img.convert("RGBA").save(pin)
+        try:
+            r = subprocess.run([exe, *VT1_PRESET.get(kind, []), str(pin), str(pout)],
+                               capture_output=True, text=True, timeout=timeout)
+        except subprocess.TimeoutExpired:
+            return None, f"vtracer 1.x timed out after {timeout} s"
+        if r.returncode or not pout.exists():
+            return None, f"vtracer 1.x exited {r.returncode}: {(r.stderr or '')[-200:]}"
+        doc = V.read_svg(pout)
+    return doc, None
+
+
 def find_potrace():
     if rung_max() < 2:
         return None
@@ -476,6 +516,12 @@ def trace(img, kind, backend="auto", tol=None, vt_opts=None):
         elif backend == "inkscape":
             doc = run_inkscape_trace(img)
             used.add("trace", 2, "Inkscape object-trace (GPL, external)")
+        elif backend == "vtracer1":
+            doc, err = run_vtracer1(img, kind)
+            if doc is not None:
+                used.add("trace", 2, "VTracer 1.x CLI (MIT, external)" + (" --preset poster" if kind in VT1_PRESET else ""))
+            else:
+                notes.append(err + "; own region tracer used")
         elif backend in ("auto", "vtracer"):
             if vtracer_ok():
                 doc, err = run_vtracer(img, vt_opts or {})
@@ -514,7 +560,7 @@ def add_commands(sub, edit):
     p.add_argument("input")
     p.add_argument("-o", "--output", help="SVG path (never overwritten: name-NNN)")
     p.add_argument("--kind", choices=KINDS, default="logo")
-    p.add_argument("--backend", choices=("auto", "vtracer", "own", "potrace", "inkscape"), default="auto",
+    p.add_argument("--backend", choices=("auto", "vtracer", "vtracer1", "own", "potrace", "inkscape"), default="auto",
                    help="logo/icon/line/photo: auto = VTracer in a subprocess, else the own region tracer")
     p.add_argument("--tolerance", type=float, help="curve fit tolerance in px (own tracers)")
     p.add_argument("--vt-opts", help="JSON options passed to vtracer (run in its own process)")
@@ -527,6 +573,7 @@ core.DOCTOR_GROUPS.append(lambda: {
     "trace pixel": (1, "own pixel-exact tracer"),
     "trace logo/icon/line/photo": (2, "VTracer in a subprocess") if vtracer_ok() else (1, "own region tracer with holes"),
     "trace centreline": (2, "scikit-image skeletonize") if probe("skimage.morphology") else (1, "own Zhang-Suen thinning"),
+    "trace --backend vtracer1": (2, "VTracer 1.x CLI") if find_vtracer1() else (0, "VTracer 1.x CLI not found (optional, alpha)"),
     "trace --backend potrace": (2, "potrace CLI") if find_potrace() else (0, "potrace not installed (optional, GPL)"),
     "trace --backend inkscape": (2, "Inkscape object-trace") if V.inkscape() else (0, "Inkscape not found (optional, GPL)"),
 })

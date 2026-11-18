@@ -6,6 +6,11 @@ Entry shape: `### C-YYYYMMDD-n · date · one-line summary`, then `because:`, `f
 
 ## Unreleased
 
+### C-20261117-3 · 2026-11-17 · opt-in VTracer 1.x CLI backend after a measured photo win
+because: bake-off (ai-docs/notes/bakeoff/vtracer1-2026-11-17.md): VTracer 1.0.0-alpha.4 `--preset poster` scores 0.884 vs 0.840 overlap on the photo, in budget; default 1.0 output equals 0.6.15.
+files: scripts/phw/vtrace.py, tests/test_phw4.py, kb/tools.json, references/vectorize.md.
+`trace --backend vtracer1` runs the 1.x CLI found via PHW_VTRACER or PATH (photo with --preset poster) and falls back to the own tracer with a note; auto stays on 0.6.15 while 1.0 is alpha.
+
 ### C-20261117-9 · 2026-11-17 · 0.8.0: bridge to free editors (GIMP run and compare, Krita, Photopea/Photoshop scripts)
 because: Mark's ruling (bridge last, free editors, Photoshop documentation only); measured GIMP 3 reading ORA layers in linear light (mean 8.9, max 60 of 255 off).
 files: scripts/phw/bridge.py, tests/test_phw7.py, skills/photowright/SKILL.md.
