@@ -49,3 +49,4 @@
 - 2026-11-18 (session 23): built `filter --offset` (0.9.0; bit-equal to np.roll).
 - 2026-11-18 (session 23): built `color --invert/--posterize/--threshold/--solarize` (0.9.0; exact on all 256 values).
 - 2026-11-18 (session 23): built `color --mixer` and `--gradient-map` (0.9.0; matrix within 1/255, identity bit exact; tests/test_phw8.py, masks + run replay proven).
+- 2026-11-18 (session 23): 8199 busy (H3). Coverage sweep + 12 rung 1 rows built via subagent (0.9.0, PR #24). Rung-1 suite re-verified 141 pass/10 skip. Wrap-up: only survivor is the read-the-log-tail tip in HANDOFF.
