@@ -81,3 +81,9 @@
 - phw 0.20.0 (branch s33-rung2): new scripts/phw/rawio.py: `camraw` (Camera Raw Basic panel, own ops), HEIC/JXL/camera raw read through core.LOAD_HOOKS (pillow-heif / pillow-jxl-plugin refuse with the pip line when absent; rawpy installed, tested with a stand-in module), `inspect --c2pa-verify` (c2patool when on PATH). tests/test_phw19.py (8 tests).
 - Licence find: pillow-jxl-plugin is GPL-3.0 (repo LICENSE; PyPI has no licence field). Kept as an optional probed package, never bundled; kb row added.
 - Ladder eval: full suite with PHW_RUNG_MAX=3 passes in all eight groups (258 run, 3 skipped live ComfyUI): ai-docs/notes/ladder-evals-2026-11-18.md, evals/ladder_report.py.
+
+## 2026-11-18 session 34
+- 8199 busy at start (1 running, 2 pending): model-route checks waited again.
+- phw 0.21.0 (branch s34-pdfopen): scripts/phw/docio.py: PDF open (pdftoppm, else mutool), EPS/PS/AI open (Ghostscript; absent here, refuses), video frame open with `clip.mp4[N]` and `frames VIDEO OUTDIR` (ffmpeg). Page/frame picked by an ImageMagick-style `[N]` suffix; core.sha256 strips it so recipes hash the file. tests/test_phw20.py (7 tests). Every coverage row is now built or partial.
+- Books: `book_harvest.py find` found none of the leads on disk; added Tavmjong Bah's free Inkscape manual as the next free title.
+

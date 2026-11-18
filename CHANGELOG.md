@@ -6,6 +6,11 @@ Entry shape: `### C-YYYYMMDD-n · date · one-line summary`, then `because:`, `f
 
 ## Unreleased
 
+### C-20261118-17 · 2026-11-18 · 0.21.0: PDF/EPS open, video frames (`frames`), page and frame suffixes
+because: HANDOFF session 33 left PDF/EPS open and video layers as the only open coverage rows (8199 busy, so model-route checks waited again).
+files: scripts/phw/docio.py, scripts/phw/core.py (sha256 strips a page suffix), scripts/phw/__init__.py, tests/test_phw20.py, skills/photowright/SKILL.md, .claude-plugin/plugin.json, ai-docs/notes/coverage-gaps-2026-11-17.md
+Any command now opens `doc.pdf[2]` (pdftoppm or mutool), `art.eps` (Ghostscript) and `clip.mp4[48]` (ffmpeg) as rung 2 external programs, never bundled; `PHW_DOC_DPI` sets the render resolution; `frames VIDEO OUTDIR --every N --max K --width W` writes numbered PNG frames. Each refuses with the install hint when the program is absent or PHW_RUNG_MAX is below 2.
+
 ### C-20261118-16 · 2026-11-18 · 0.20.0: `camraw`, HEIC/JXL/camera raw read, `inspect --c2pa-verify`
 because: HANDOFF session 32 named the remaining rung 2 rows next (8199 busy, so model-route checks waited again).
 files: scripts/phw/rawio.py, scripts/phw/core.py (LOAD_HOOKS, inspect flag), scripts/phw/__init__.py, tests/test_phw19.py, skills/photowright/SKILL.md, .claude-plugin/plugin.json, ai-docs/notes/coverage-gaps-2026-11-17.md
