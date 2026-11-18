@@ -6,6 +6,11 @@ Entry shape: `### C-YYYYMMDD-n · date · one-line summary`, then `because:`, `f
 
 ## Unreleased
 
+### C-20261118-20 · 2026-11-18 · 0.24.0: relight --keep-detail (source detail over IC-Light's lighting)
+because: the first live relight run (ai-docs/notes/bakeoff/relight-live-2026-11-18.md) showed IC-Light repaints the whole frame (high-pass correlation with the source 0.46; the car and tail emblem vanished).
+files: scripts/phw/transform.py, tests/test_comfy.py, skills/photowright/SKILL.md, scripts/phw/core.py, .claude-plugin/plugin.json
+New `relight --keep-detail SIGMA`: Gaussian lows of the relit frame plus the source's highs above SIGMA px; `invented_detail` is false when set. Live on 8199 with sigma 4: high-pass correlation 0.965 (was 0.455), same colour shift. A faint halo can show along hard edges where the lighting changes sharply.
+
 ### C-20261118-19 · 2026-11-18 · 0.23.0: relight by prompt and direction (IC-Light + Depth Anything V2 Small, rung 3)
 because: references/comfyui-nodes.md listed IC-Light and controlnet_aux DA-V2 Small as installed on 8199 but not wired.
 files: scripts/phw/comfy.py, scripts/phw/transform.py, scripts/phw/core.py, tests/test_comfy.py, skills/photowright/SKILL.md, references/comfyui-nodes.md, .claude-plugin/plugin.json

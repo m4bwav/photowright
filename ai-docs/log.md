@@ -97,3 +97,5 @@
 - 2026-11-18: unattended chain started via chain_loop.py (max 80 sessions, 80 h, 90 min/session); output in ai-docs/chain-run.log, costs in ai-docs/chain-ledger.json.
 
 2026-11-18 (session 39): 8199 idle: first live relight run passed (13.5 s cold, 4.1 s warm; IC-Light repaints detail, PSNR 15.5 dB vs source) — ai-docs/notes/bakeoff/relight-live-2026-11-18.md. Follow-up idea: `relight --keep-detail` (high frequencies from the source). Layers (layerdiffuse) wiring still open.
+
+2026-11-18 (session 40): built phw 0.24.0 `relight --keep-detail SIGMA` (relit lows + source highs). Live on 8199, sigma 4: high-pass correlation with the source 0.965 vs 0.455 plain, same lighting; faint halo on hard edges. Notes in ai-docs/notes/bakeoff/relight-live-2026-11-18.md. Next: layers (layerdiffuse) wiring.
