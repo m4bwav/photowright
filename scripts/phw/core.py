@@ -22,6 +22,7 @@ import importlib
 import importlib.util
 import io
 import json
+import re
 import math
 import os
 import shutil
@@ -40,7 +41,7 @@ try:
 except Exception:  # pragma: no cover - Pillow built without LittleCMS
     ImageCms = None
 
-VERSION = "0.18.0"
+VERSION = "0.19.0"
 ROOT = Path(__file__).resolve().parent.parent.parent
 
 # Hooks filled by the other modules of the package (masks, compose, layered).
@@ -1101,11 +1102,47 @@ def cmd_inspect(a):
     if path.suffix.lower() == ".ora":
         with zipfile.ZipFile(path) as z:
             r["layers"] = z.read("stack.xml").decode("utf-8", "replace").count("<layer")
+    r["c2pa"] = c2pa_scan(path)
+    return r
+
+
+def c2pa_scan(path):
+    """Content Credentials (C2PA) presence, read by the plugin itself: JPEG APP11 JUMBF segments,
+    PNG caBX chunks, or a JUMBF box labelled c2pa anywhere (WebP, AVIF, TIFF). Detects and names the
+    claim generator when it is readable text; it does not validate signatures (c2patool, rung 2)."""
+    d = Path(path).read_bytes()
+    where = []
+    if d[:2] == b"\xff\xd8":
+        i = 2
+        while i + 4 <= len(d) and d[i] == 0xFF:
+            m, n = d[i + 1], int.from_bytes(d[i + 2:i + 4], "big")
+            if m == 0xEB and b"jumb" in d[i + 4:i + 2 + n] and b"c2pa" in d[i + 4:i + 2 + n]:
+                where.append("JPEG APP11")
+            if m == 0xDA:
+                break
+            i += 2 + n
+    elif d[:8] == b"\x89PNG\r\n\x1a\n":
+        i = 8
+        while i + 8 <= len(d):
+            n = int.from_bytes(d[i:i + 4], "big")
+            if d[i + 4:i + 8] == b"caBX":
+                where.append("PNG caBX")
+            i += 12 + n
+    if not where and b"jumb" in d and b"c2pa" in d:
+        where.append("JUMBF box")
+    r = {"present": bool(where)}
+    if where:
+        r["where"] = sorted(set(where))
+        m = re.search(rb"claim_generator[^A-Za-z0-9]{1,8}([ -~]{3,80})", d)
+        if m:
+            r["claim_generator"] = m.group(1).decode("ascii", "replace").strip()
+        r["note"] = ("any phw edit or convert drops these credentials (they would no longer match the pixels); "
+                     "validating or signing needs c2patool (rung 2) and a certificate")
     return r
 
 
 TOOLS_ON_PATH = ["vtracer", "potrace", "inkscape", "gimp", "gimp-console", "gimp-3.0", "gimp-console-3.0",
-                 "gimp-2.10", "gimp-console-2.10", "magick", "exiftool", "krita"]
+                 "gimp-2.10", "gimp-console-2.10", "magick", "exiftool", "krita", "c2patool"]
 
 
 def gimp_console():

@@ -214,6 +214,68 @@ def write_psd(doc, out, used, space="gamma", compression="rle"):
     return out
 
 
+# ---------------------------------------------------------------- layered TIFF (Photoshop tag 37724)
+TIFF_SIG = b"Adobe Photoshop Document Data Block\0"
+
+
+def layer_info_body(doc, compression="rle"):
+    recs = []
+    _psd_layers(doc.layers, compression, recs, doc.notes)
+    body = struct.pack(">h", len(recs)) + b"".join(r for r, _ in recs) + b"".join(
+        d for _, chans in recs for _, d in chans)
+    return body + b"\0" * (len(body) % 2)
+
+
+def write_tiff_layered(doc, out, used, space="gamma", compression="rle"):
+    """Flat RGBA composite as the TIFF image, layers in tag 37724 (ImageSourceData) as Photoshop,
+    GIMP and Krita read them: the signature, then an 8BIM 'Layr' block holding PSD layer info."""
+    from PIL import TiffImagePlugin
+    if space != "gamma":
+        doc.notes.append("layered TIFF stores no blend space: readers blend these layers in gamma")
+    body = layer_info_body(doc, compression)
+    block = TIFF_SIG + b"8BIMLayr" + struct.pack(">I", len(body)) + body
+    flat = composite_doc(doc, space)
+    ifd = TiffImagePlugin.ImageFileDirectory_v2()
+    ifd[37724] = block
+    ifd.tagtype[37724] = 7
+    with open(out, "xb") as f:
+        Image.fromarray(u8(flat), "RGBA").save(f, format="TIFF", tiffinfo=ifd, compression=None)
+    used.add("save tiff", 1, "own layered TIFF writer (Photoshop ImageSourceData tag)")
+    return out
+
+
+def read_tiff_layered(path):
+    with Image.open(path) as im:
+        raw = im.tag_v2.get(37724) if hasattr(im, "tag_v2") else None
+        w, h = im.size
+        rgb = np.asarray(im.convert("RGB"))
+    if raw is None:
+        return None
+    raw = bytes(raw)
+    if not raw.startswith(TIFF_SIG):
+        raise ValueError("tag 37724 is not a Photoshop layer block")
+    pos, layr = len(TIFF_SIG), None
+    while pos + 12 <= len(raw):
+        sig, key = raw[pos:pos + 4], raw[pos + 4:pos + 8]
+        n = struct.unpack(">I", raw[pos + 8:pos + 12])[0]
+        if sig not in (b"8BIM", b"8B64"):
+            break
+        if key == b"Layr":
+            layr = raw[pos + 12:pos + 12 + n]
+            break
+        pos += 12 + n + (n % 2)
+    if layr is None:
+        return None
+    lm = struct.pack(">I", len(layr)) + layr + struct.pack(">I", 0)
+    merged = struct.pack(">H", 0) + b"".join(np.ascontiguousarray(rgb[..., c]).tobytes() for c in range(3))
+    data = (b"8BPS" + struct.pack(">H6xHIIHH", 1, 3, h, w, 8, 3) + struct.pack(">I", 0) + struct.pack(">I", 0)
+            + struct.pack(">I", len(lm)) + lm + merged)
+    with tempfile.TemporaryDirectory() as td:
+        tmp = Path(td) / "t.psd"
+        tmp.write_bytes(data)
+        return read_psd_own(tmp)
+
+
 # ---------------------------------------------------------------- PSD read (own)
 class _R:
     def __init__(self, d, pos=0):
@@ -544,6 +606,11 @@ def read_layered(path, used):
             return read_psd_tools(path, pt)
         used.add("open psd", 1, "own PSD reader (8-bit RGB raster, masks, groups)")
         return read_psd_own(path)
+    if ext in (".tif", ".tiff"):
+        doc = read_tiff_layered(path)
+        if doc is not None:
+            used.add("open tiff", 1, "own layered TIFF reader (tag 37724)")
+            return doc
     if ext == ".json":
         r = json.loads(Path(path).read_text(encoding="utf-8"))
         if r.get("kind") != "layers":
@@ -645,6 +712,8 @@ def cmd_save(a):
         space = json.loads(Path(a.input).read_text(encoding="utf-8")).get("space", "gamma")
     if out.suffix.lower() == ".psd":
         write_psd(doc, out, used, space, a.psd_compression)
+    elif out.suffix.lower() in (".tif", ".tiff") and not a.flat:
+        write_tiff_layered(doc, out, used, space, a.psd_compression)
     else:
         write_doc(doc, out, used, space)
     log_line(out.parent / "log.jsonl", ["save"], out, used, time.time() - t0, {"input": str(a.input)}) if a.log else None
@@ -653,15 +722,16 @@ def cmd_save(a):
 
 
 def add_commands(sub, edit):
-    p = sub.add_parser("open", help="read a layered file (.psd, .ora, layers recipe): tree, extract, GIMP check")
+    p = sub.add_parser("open", help="read a layered file (.psd, .ora, layered .tif, layers recipe): tree, extract, GIMP check")
     p.add_argument("input")
     p.add_argument("--extract", help="folder: write each layer and mask as PNG plus layers.json")
     p.add_argument("--gimp", action="store_true", help="also open it in GIMP 3 (batch) and list what GIMP sees")
     p.set_defaults(fn=cmd_open)
-    p = sub.add_parser("save", help="write a layered file: .psd/.ora/.json recipe in, .psd/.ora/.png out")
+    p = sub.add_parser("save", help="write a layered file: .psd/.ora/.tif/.json recipe in, .psd/.ora/.tif (layered)/.png out")
     p.add_argument("input")
     p.add_argument("-o", "--output", required=True, help="output .psd, .ora or flat image (never overwritten)")
     p.add_argument("--psd-compression", choices=("rle", "raw"), default="rle")
+    p.add_argument("--flat", action="store_true", help="for .tif: write the flat composite only, no layers")
     p.add_argument("--log", action="store_true", help="append a line to log.jsonl next to the output")
     p.set_defaults(fn=cmd_save)
 
@@ -670,6 +740,7 @@ core.EXTRA_COMMANDS.append(add_commands)
 core.DOCTOR_GROUPS.append(lambda: {
     "ORA read/write": (1, "own OpenRaster code"),
     "PSD write": (1, "own PSD writer (8-bit RGB, masks, groups)"),
+    "layered TIFF read/write": (1, "own (Photoshop tag 37724)"),
     "PSD read": (2, "psd-tools") if probe("psd_tools") else (1, "own minimal PSD reader"),
     "GIMP check": (2, core.gimp_console() or "GIMP 3 not found"),
 })

@@ -6,6 +6,11 @@ Entry shape: `### C-YYYYMMDD-n · date · one-line summary`, then `because:`, `f
 
 ## Unreleased
 
+### C-20261118-15 · 2026-11-18 · 0.19.0: `autoalign --model` rotation/scale/perspective, `hdrmerge --response recover`, layered TIFF, C2PA detection
+because: HANDOFF session 31 named the two partial rows (Auto-Align rotation/perspective, HDR camera response) as next, then the rung 2 rows; layered TIFF and Content Credentials detection turned out doable in rung 1.
+files: scripts/phw/hdr.py, scripts/phw/layered.py, scripts/phw/core.py, tests/test_phw18.py, tests/test_phw2.py, skills/photowright/SKILL.md, .claude-plugin/plugin.json, ai-docs/notes/coverage-gaps-2026-11-17.md
+Auto-Align now takes --model rigid|similarity|homography (Fourier-Mellin log-polar guesses, then pyramid Gauss-Newton Lucas-Kanade; corners within 0.5 px of the true warp). Merge to HDR recovers the camera response (Debevec gsolve, per channel, saved/reused as JSON; under 5% radiance error on a cube-root camera where the sRGB guess is over 2x worse). `save x.tif` writes a layered TIFF (Photoshop tag 37724 holding PSD layer info; GIMP 3 opens the layers) and `open` reads it back. `lensprofile` corrects distortion and vignetting from a lensfun database the user points at (data never bundled; coefficients stored in the recipe). `inspect` reports Content Credentials (JPEG APP11, PNG caBX, JUMBF) with the claim generator.
+
 ### C-20261118-14 · 2026-11-18 · 0.18.0: `hdrmerge`, `hdrtone`, `autoalign`, `lasso`, `vpclone`, `widefix`, `comps`, `assets`
 because: the gap note's build-next list after 0.17.0 (8199 busy, so the model-route checks waited again).
 files: scripts/phw/hdr.py, scripts/phw/comps.py, scripts/phw/__init__.py, scripts/phw/core.py, tests/test_phw17.py, skills/photowright/SKILL.md, .claude-plugin/plugin.json, ai-docs/notes/coverage-gaps-2026-11-17.md.
