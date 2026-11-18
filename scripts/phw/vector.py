@@ -247,6 +247,14 @@ def _len(v):
     return float(m.group(1)) * f
 
 
+def _geom(v, ref):
+    """A geometry attribute: a user-space number, a unit length, or a percentage of ref."""
+    v = (v or "0").strip()
+    if v.endswith("%"):
+        return float(v[:-1]) * ref / 100
+    return _len(v) or 0.0
+
+
 def parse_svg(text):
     if "<!ENTITY" in text:
         raise ValueError("SVG with XML entities refused")
@@ -285,7 +293,7 @@ def parse_svg(text):
         if tag == "path":
             subs, arcs = parse_d(el.get("d"))
         elif tag == "rect":
-            x, y, w, h = (float(el.get(k, 0) or 0) for k in ("x", "y", "width", "height"))
+            x, y, w, h = (_geom(el.get(k), r) for k, r in (("x", W), ("y", H), ("width", W), ("height", H)))
             subs = [{"start": (x, y), "segs": [("L", (x + w, y)), ("L", (x + w, y + h)), ("L", (x, y + h))],
                      "closed": True}]
         elif tag in ("polygon", "polyline"):

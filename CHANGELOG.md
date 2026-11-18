@@ -12,6 +12,11 @@ Nothing yet.
 
 Every entry below is in a tagged release; the version is in each heading.
 
+### C-20261118-23 · 2026-11-18 · 0.25.2: SVG lengths in percent; lineart-trace bake-off
+because: the centreline bake-off against lineart-trace 0.2.0 (ai-docs/notes/bakeoff/lineart-trace-2026-11-18.md) crashed `vcheck` on its `<rect width="100%" height="100%">` background.
+files: scripts/phw/vector.py (_geom), tests/test_phw23.py, scripts/phw/core.py, .claude-plugin/plugin.json
+rect x/y/width/height now accept percentages of the viewport and unit lengths. The bake-off kept the own centreline tracer: it matched or beat lineart-trace on overlap in all four drawings.
+
 ### C-20261118-22 · 2026-11-18 · 0.25.1: decompose names a split that did not separate
 because: the first real-image run (864x480 game still, Qwen-Image-Layered, 4 layers, seed 7) came back with alpha coverage [1, 1, 1, 0] and recomposite 32.6 dB: layer 3 opaque over layers 1-2 and layer 4 empty, with no warning. Cold 212 s, warm 209 s: sampling, not model load, is the cost.
 files: scripts/phw/layered.py (split_warnings), tests/test_phw22.py (SplitWarnings).
