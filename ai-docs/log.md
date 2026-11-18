@@ -109,3 +109,5 @@
 
 - 2026-11-18 session 45: decompose on a public-domain NPS photo (bison and Roosevelt Arch, 864x576, seed 7): no prompt [1,.057,.023,.054] 27.9 dB 215 s; caption [1,.063,.018,.053] 28.2 dB 224 s. Bison split cleanly both ways, arch never split; caption does not help (notes/bakeoff/decompose-photo-2026-11-18.md). SKILL.md decompose line says so.
 - 2026-11-18 session 45: decompose photo test (PR #55, caption no help); beat scan 2 (indie-ai-scout #71); beat findings into LEARNINGS; next Moebius vs lama, VTracer alpha.4 wrapper check.
+
+- 2026-11-18 session 46: VTracer 1.0.0-alpha.4 is still latest (released 2026-08-29); wrapper already tested on it, nothing to do. Moebius bake-off blocked: node install + weight download needs Mark's go-ahead. Stale non-git folders ../photowright-s26, -s40, -stepbc are leftovers, not worktrees.
