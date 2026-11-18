@@ -5,7 +5,7 @@ result is composited through a hard mask at the end). Rungs:
   heal   1 own Poisson (gradient-domain) solver, conjugate gradients in NumPy  | 2 OpenCV seamlessClone
   clone  1 copy from an offset, optional own Poisson blend
   fill   1 own multi-scale PatchMatch exemplar fill (Barnes et al. 2009, Wexler et al. 2007)
-         1 own membrane (Laplace) fill for thin regions | 2 OpenCV inpaint Telea/NS | 3 LaMa: stub only
+         1 own membrane (Laplace) fill for thin regions | 2 OpenCV inpaint Telea/NS | 3 LaMa (big-lama) via ComfyUI, falls back
   remove = region (mask or shape, grown) + fill
   restore red eye, dust and scratches (median-threshold), old-photo pass (scratch detect + fill + denoise)
 Seam carving (content-aware scale) is left out on purpose: Adobe patent flag, see references/transform-merge.md s4.
@@ -18,11 +18,6 @@ import numpy as np
 from . import core
 from .core import OPS, Used, load, probe, save, out_for, floats
 from .masks import draw_shape, morph, read_mask
-
-LAMA_ROUTE = ("fill --method lama is rung 3 and not built: run big-lama (Apache-2.0, "
-              "https://github.com/advimman/lama) through comfyui-gen's ComfyUI with the comfyui_layerstyle LaMa node; "
-              "no weights are on disk and phw downloads nothing. Use --method patch (rung 1) or telea (rung 2).")
-
 
 # ---------------------------------------------------------------- region
 def region_mask(p, shape, base_dir=None):
@@ -391,7 +386,22 @@ def is_thin(hole, r=2):
 def fill_color(img, c, hole, p, used):
     method = p.get("method", "auto")
     if method == "lama":
-        raise SystemExit("fill: " + LAMA_ROUTE)
+        from . import comfy
+        try:
+            rgb = c[..., :3] if c.shape[2] >= 3 else np.repeat(c, 3, axis=2)
+            res, info = comfy.lama_fill(rgb, hole, int(p.get("seed", 0)))
+            used.add("fill", 3, f"ComfyUI LaMa ({info['model']})")
+            p.update(model=info["model"], seed=info["seed"])
+            img.notes.append(f"rung 3 LaMa via {info['server']}: {info['seconds']} s, {info['queued_ahead']} jobs ahead")
+            if c.shape[2] == 1:
+                res = res.mean(axis=2, keepdims=True)
+            elif c.shape[2] > 3:
+                res = np.concatenate([res, c[..., 3:]], axis=2)
+            return res.astype(np.float32)
+        except comfy.Unavailable as e:
+            img.notes.append(f"fell back: {e}")
+            p["fell_back"] = str(e)
+            method = "auto"
     if method == "auto":
         method = "thin" if is_thin(hole) else "patch"
     if method in ("thin", "telea", "ns"):
@@ -566,8 +576,6 @@ def cmd_clone(a):
 
 def cmd_fill(a, tag="fill"):
     p = region_params(a)
-    if a.method == "lama":
-        raise SystemExit("fill: " + LAMA_ROUTE)
     p.update(method=a.method, patch=a.patch, seed=a.seed, radius=a.radius)
     return region_command(a, tag, p)
 
@@ -619,8 +627,9 @@ def add_commands(sub, edit):
                             ("remove", cmd_remove, "remove an object: region grown 2 px, then content-aware fill")):
         p = edit(name, fn, help_)
         region_flags(p)
-        p.add_argument("--method", choices=("auto", "patch", "membrane", "telea", "ns", "lama"), default="auto",
-                       help="auto: thin regions telea (rung 2) or membrane, else patch (own PatchMatch, rung 1)")
+        p.add_argument("--method", "--model", dest="method",
+                       choices=("auto", "patch", "membrane", "telea", "ns", "lama"), default="auto",
+                       help="lama: rung 3 via the local ComfyUI (falls back to auto); auto: thin regions telea (rung 2) or membrane, else patch (own PatchMatch, rung 1)")
         p.add_argument("--patch", type=int, default=7, help="patch size for --method patch (odd)")
         p.add_argument("--seed", type=int, default=0)
         p.add_argument("--radius", type=float, default=3, help="inpaint radius for telea/ns")
@@ -640,7 +649,7 @@ core.DOCTOR_GROUPS.append(lambda: {
     "clone": (1, "NumPy copy (+ own Poisson)"),
     "fill/remove (areas)": (1, "own multi-scale PatchMatch"),
     "fill (thin regions)": (2, "OpenCV inpaint Telea") if probe("cv2") else (1, "own membrane fill"),
-    "fill --method lama": (3, "not built: comfyui-gen route documented"),
+    "fill --method lama": (3, "ComfyUI inpaint-nodes + big-lama.pt (falls back)"),
     "restore (red eye, dust, old photo)": (1, "NumPy median-threshold + fill"),
     "content-aware scale (seam carving)": (0, "left out: Adobe patent flag (references/transform-merge.md s4)"),
 })

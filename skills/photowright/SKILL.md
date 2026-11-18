@@ -3,7 +3,7 @@ name: photowright
 description: "Photoshop-like work on an existing image from the command line, and tracing it to vectors, free tools first and Photoshop never required. Editing an existing image: levels, curves, exposure, white balance, crop, resize, sharpen, denoise, masks, background removal, heal, clone, object removal, content-aware fill, photo restore, perspective, upscale, stacks, panoramas, layers and blend modes, PSD or ORA, one edit over a folder. Tracing it to vectors: raster to SVG for logos, icons, line art, photos and centrelines, checked by render-back, exported as SVG, PDF, EPS or DXF for a laser cutter. Use on 'brighten this photo', 'remove the background', 'remove this person from the photo', 'fix the perspective', 'batch resize this folder', 'open this PSD', 'vectorize my logo', 'trace this to SVG'. Also 'refresh photowright'. Not for critiquing or ranking images (artwright), pixel art or sprites (pixelwright), brand marks from nothing (brandwright) or generating new images (comfyui-gen)."
 license: MIT
 metadata:
-  version: 0.5.0
+  version: 0.6.0
 ---
 
 # photowright
@@ -42,6 +42,7 @@ Every result lists the rung and tool used for each step (`used`). Report it in o
 1. `PHW inspect <file>` first: size, mode, ICC profile, bit depth, alpha, orientation, layers.
 2. Run the command with `-o <new file>` and `--recipe <name>.json` when the user may want it again. Outputs are never overwritten; a taken name becomes `name-NNN`.
 3. Edits work in linear light with the profile carried through. JPEG has no alpha: a cutout goes to PNG, WebP or TIFF.
+   Rung 3 (local models through the ComfyUI at PHW_COMFY_URL, default 127.0.0.1:8199): `cutout --model birefnet`, `fill`/`remove --model lama`, `select --text "the dog"`. Cutout and fill fall back to rung 1/2 and say "fell back: <reason>"; select by text has no fallback.
 4. Show the result: `PHW sheet before after -o sheet.png` and look at it yourself before saying it is done; `PHW diff` when the change should be local (a heal must not touch the rest).
 5. For a folder: `PHW batch <recipe> <folder> --out <out folder>` prints the plan; run again with `--apply` only after the dry run looks right.
 

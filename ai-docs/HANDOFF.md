@@ -22,7 +22,7 @@ Continue prompt: [plans/photowright-continue-prompt.md](plans/photowright-contin
 
 ## Next
 
-0. Wiki after Mark makes the repo public. Worth follow-ups (log). Wire phw rung 3 routes to the now-installed ComfyUI nodes: select by text (Florence2+SAM2), fill/remove (LaMa, Qwen-Image-Edit-2511), cutout (BiRefNet), upscale (SeedVR2), relight (IC-Light+DA-V2 Small), layers (layerdiffuse/Qwen-Image-Layered). Update references/comfyui-nodes.md Installed column.
+0. Wiki after Mark makes the repo public. Worth follow-ups (log). Rung 3 DONE 2026-11-17 in 0.6.0 (scripts/phw/comfy.py, tests/test_comfy.py): cutout --model birefnet, fill/remove --model lama, select --text (Florence-2 + SAM 2.1 base_plus). Still to wire: fill by instruction (Qwen-Image-Edit-2511), upscale (SeedVR2; the realesrgan stub in transform.py stays, no Real-ESRGAN weights checked), relight (IC-Light+DA-V2 Small), layers (layerdiffuse/Qwen-Image-Layered). Update references/comfyui-nodes.md Installed column.
 
 1. Step G done 2026-11-17: Szeliski read and distilled (ai-docs/notes/szeliski.md). Next: build its 10 proposals, each test first (adjust luminance curves and equalise, bilateral denoise, warp prefilter, pyramid composite, median stack, fill/stitch doc lines, upscale invented flag). The rest of ai-docs/notes/books.md are leads.
 2. Step E: first real jobs, one per kind from Mark's five projects (Arvum sprites, SpaceDeckBuilder2 cards, polywright print/laser, AI film stills, markdavidrogers.com images): a photo retouch, a layered composite, a batch over a folder (phw batch, dry run first), a trace to a clean vector (phw trace + vcheck + export, DXF for laser). Each goes through the bars, then to Mark on an askwright page. Whatever fails becomes a test.
