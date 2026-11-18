@@ -6,6 +6,11 @@ Entry shape: `### C-YYYYMMDD-n · date · one-line summary`, then `because:`, `f
 
 ## Unreleased
 
+### C-20261118-8 · 2026-11-18 · 0.12.0: `warpfx`, `stylize`, `blurfx`, `tonebrush` commands
+because: the gap note's build-next list (ai-docs/notes/coverage-gaps-2026-11-17.md); 8199 busy again, so rung 1 rows instead of the model measurements.
+files: scripts/phw/stylize.py, scripts/phw/__init__.py, tests/test_phw11.py, skills/photowright/SKILL.md, scripts/phw/core.py, .claude-plugin/plugin.json.
+Seventeen rung 1 rows (Wave, Ripple, Spherize, ZigZag, Lens Correction, Crystallize, Color Halftone, Trace Contour, Diffuse, Wind, Oil Paint, Clouds, Radial spin, Radial zoom, Surface Blur, Dodge/Burn, Sponge), NumPy only, each with a numeric proof in tests/test_phw11.py.
+
 ### C-20261118-7 · 2026-11-18 · 0.11.0: `grade`, `detail`, `distort`, `pixelate` commands and a module-shadowing guard
 because: the gap note's build-next list (ai-docs/notes/coverage-gaps-2026-11-17.md), and session 24's trap (a module named like a core function was silently replaced by it).
 files: scripts/phw/grading.py, scripts/phw/__init__.py, tests/test_phw10.py, skills/photowright/SKILL.md, scripts/phw/core.py, .claude-plugin/plugin.json.
