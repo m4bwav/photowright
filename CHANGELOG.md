@@ -6,6 +6,11 @@ Entry shape: `### C-YYYYMMDD-n · date · one-line summary`, then `because:`, `f
 
 ## Unreleased
 
+### C-20261118-3 · 2026-11-18 · 0.7.1: fill --model qwen-edit --prompt (rung 3, Qwen-Image-Edit-2511)
+- because: HANDOFF next item "wire fill by instruction (Qwen-Image-Edit-2511)"; weights, Lightning LoRA, text encoder and VAE are on the 8199 server, core nodes (Apache-2.0, references/comfyui-nodes.md)
+- files: scripts/phw/comfy.py, scripts/phw/retouch.py, tests/test_comfy.py, skills/photowright/SKILL.md, references/comfyui-nodes.md, references/retouch-fill.md, .claude-plugin/plugin.json, scripts/phw/core.py
+- `phw fill|remove --model qwen-edit --prompt "..." [--seed N]` builds the core 2511 graph (Lightning 4 steps, SetLatentNoiseMask), resizes the result back and composites through the mask, so outside pixels are the source's bit for bit. The step records rung 3, model, LoRA, seed, prompt and invented_detail: true. Server down, rung hidden, node or model missing, or any job already queued (`PHW_COMFY_MAX_AHEAD`, default 0): falls back to the rung 1/2 fill with a `fell back:` note. Chose a `--model` value on `fill` over a new `edit --instruction` command: it reuses region flags, the mask composite and the fallback path. Offline tests only; live run not measured (8199 busy with an H3 render).
+
 ### C-20261118-2 · 2026-11-18 · upscale --method seedvr2 (rung 3, ComfyUI core SeedVR2)
 - because: HANDOFF next item "wire remaining rung 3 routes"; SeedVR2 3B/7B int8 weights and the core SeedVR2 nodes are on the 8199 server (Apache-2.0 code and weights, references/comfyui-nodes.md)
 - files: scripts/phw/comfy.py, scripts/phw/transform.py, tests/test_comfy.py

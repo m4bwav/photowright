@@ -385,6 +385,24 @@ def is_thin(hole, r=2):
 
 def fill_color(img, c, hole, p, used):
     method = p.get("method", "auto")
+    if method == "qwen-edit":
+        from . import comfy
+        try:
+            rgb = c[..., :3] if c.shape[2] >= 3 else np.repeat(c, 3, axis=2)
+            res, info = comfy.qwen_edit_fill(rgb, hole, p["prompt"], int(p.get("seed", 0)))
+            used.add("fill", 3, f"ComfyUI Qwen-Image-Edit-2511 ({info['model']})")
+            p.update(model=info["model"], lora=info["lora"], seed=info["seed"], invented_detail=True)
+            img.notes.append(f"rung 3 Qwen-Image-Edit via {info['server']}: {info['seconds']} s, "
+                             f"{info['queued_ahead']} jobs ahead; pixels outside the mask are the source's")
+            if c.shape[2] == 1:
+                res = res.mean(axis=2, keepdims=True)
+            elif c.shape[2] > 3:
+                res = np.concatenate([res, c[..., 3:]], axis=2)
+            return res.astype(np.float32)
+        except comfy.Unavailable as e:
+            img.notes.append(f"fell back: {e} (rung 1/2 fill ignores --prompt)")
+            p["fell_back"] = str(e)
+            method = "auto"
     if method == "lama":
         from . import comfy
         try:
@@ -577,6 +595,10 @@ def cmd_clone(a):
 def cmd_fill(a, tag="fill"):
     p = region_params(a)
     p.update(method=a.method, patch=a.patch, seed=a.seed, radius=a.radius)
+    if a.prompt:
+        p["prompt"] = a.prompt
+    elif a.method == "qwen-edit":
+        raise SystemExit(f'{tag} --model qwen-edit needs --prompt "what to put in the region"')
     return region_command(a, tag, p)
 
 
@@ -628,8 +650,9 @@ def add_commands(sub, edit):
         p = edit(name, fn, help_)
         region_flags(p)
         p.add_argument("--method", "--model", dest="method",
-                       choices=("auto", "patch", "membrane", "telea", "ns", "lama"), default="auto",
-                       help="lama: rung 3 via the local ComfyUI (falls back to auto); auto: thin regions telea (rung 2) or membrane, else patch (own PatchMatch, rung 1)")
+                       choices=("auto", "patch", "membrane", "telea", "ns", "lama", "qwen-edit"), default="auto",
+                       help="lama / qwen-edit: rung 3 via the local ComfyUI (fall back to auto); auto: thin regions telea (rung 2) or membrane, else patch (own PatchMatch, rung 1)")
+        p.add_argument("--prompt", help="instruction for --model qwen-edit (what to put in the region)")
         p.add_argument("--patch", type=int, default=7, help="patch size for --method patch (odd)")
         p.add_argument("--seed", type=int, default=0)
         p.add_argument("--radius", type=float, default=3, help="inpaint radius for telea/ns")
@@ -650,6 +673,7 @@ core.DOCTOR_GROUPS.append(lambda: {
     "fill/remove (areas)": (1, "own multi-scale PatchMatch"),
     "fill (thin regions)": (2, "OpenCV inpaint Telea") if probe("cv2") else (1, "own membrane fill"),
     "fill --method lama": (3, "ComfyUI inpaint-nodes + big-lama.pt (falls back)"),
+    "fill --model qwen-edit --prompt": (3, "Qwen-Image-Edit-2511 via ComfyUI core nodes, masked; falls back"),
     "restore (red eye, dust, old photo)": (1, "NumPy median-threshold + fill"),
     "content-aware scale (seam carving)": (0, "left out: Adobe patent flag (references/transform-merge.md s4)"),
 })
