@@ -76,6 +76,15 @@ class Graphs(unittest.TestCase):
         self.assertFalse(g["run"]["inputs"]["do_sample"])
 
 
+class SeedVR2Graph(unittest.TestCase):
+    def test_seedvr2_graph(self):
+        g = comfy.graph_seedvr2("a.png", 192, 160, 4, comfy.SEEDVR2["3b"])
+        Graphs.links_ok(self, g)
+        self.assertEqual(g["ks"]["inputs"]["steps"], 1)
+        self.assertEqual(g["rs"]["inputs"]["width"], 192)
+        self.assertEqual(g["post"]["inputs"]["original_resized_images"], ["rs", 0])
+
+
 class Fallback(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
@@ -139,6 +148,28 @@ class Fallback(unittest.TestCase):
         out = np.ones(b.shape[:2], bool)
         out[20:60, 30:66] = False
         self.assertTrue((b[out] == self.a[out]).all())
+
+    def test_upscale_seedvr2_falls_back_when_down(self):
+        with self.down():
+            r = run("upscale", self.src, "--method", "seedvr2", "--scale", 2, "-o", self.d / "u.png")
+        self.assertEqual(r["rung"], 1)
+        self.assertTrue(any(n.startswith("fell back: ComfyUI server unreachable") for n in r["notes"]), r["notes"])
+        self.assertFalse(r["steps"][0]["params"]["invented_detail"])
+        self.assertEqual(Image.open(r["output"]).size, (192, 160))
+
+    def test_mocked_seedvr2_flags_invented(self):
+        def fake(rgb, w, h, seed, size="3b"):
+            return np.full((h, w, 3), 0.5, np.float32), {"model": comfy.SEEDVR2[size], "seed": seed,
+                                                          "server": "mock", "seconds": 0, "queued_ahead": 0}
+        with mock.patch.object(comfy, "seedvr2_upscale", side_effect=fake):
+            r = run("upscale", self.src, "--model", "seedvr2", "--size", "7b", "--seed", 9, "--scale", 2,
+                    "-o", self.d / "u.png")
+        self.assertEqual(r["rung"], 3)
+        prm = r["steps"][0]["params"]
+        self.assertTrue(prm["invented_detail"])
+        self.assertEqual((prm["model"], prm["seed"]), (comfy.SEEDVR2["7b"], 9))
+        self.assertTrue(any("invents detail" in n for n in r["notes"]))
+        self.assertEqual(Image.open(r["output"]).size, (192, 160))
 
 
 @unittest.skipUnless(server_up(), "ComfyUI server unreachable or rung 3 hidden")

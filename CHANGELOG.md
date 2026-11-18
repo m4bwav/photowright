@@ -6,6 +6,11 @@ Entry shape: `### C-YYYYMMDD-n · date · one-line summary`, then `because:`, `f
 
 ## Unreleased
 
+### C-20261118-2 · 2026-11-18 · upscale --method seedvr2 (rung 3, ComfyUI core SeedVR2)
+- because: HANDOFF next item "wire remaining rung 3 routes"; SeedVR2 3B/7B int8 weights and the core SeedVR2 nodes are on the 8199 server (Apache-2.0 code and weights, references/comfyui-nodes.md)
+- files: scripts/phw/comfy.py, scripts/phw/transform.py, tests/test_comfy.py
+- `phw upscale --method seedvr2 [--size 3b|7b] [--seed N]` runs one still through the core blueprint's graph (Lanczos to size, SeedVR2Preprocess, tiled VAE, one KSampler step, PostProcessing lab colour fix). The step records model, seed and invented_detail: true and notes to check text and faces; alpha stays Lanczos. Server down or rung hidden: falls back to Lanczos with a `fell back:` note. Offline tests mock the server; the live run is not yet measured (server was busy with a long render).
+
 ### C-20261118-1 · 2026-11-17 · worth follow-ups: separating action case, shorter description, DXF/PSD detail on demand
 - because: evergreen-worth lite run (ai-docs/log.md 2026-11-17); T-20261117-3; L-20261118-1
 - files: evals/evals.json, evals/check.py, evals/run.py, skills/photowright/SKILL.md, references/layered-formats.md, references/vector-formats.md
