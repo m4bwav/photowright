@@ -22,7 +22,7 @@ Continue prompt: [plans/photowright-continue-prompt.md](plans/photowright-contin
 
 ## Next
 
-0. Wiki (wikiwright) for 0.5.0. Worth follow-ups (log 2026-11-17). Wire rung 3 ComfyUI routes per references/comfyui-nodes.md: cutout via installed BiRefNet, fill/remove via Qwen-Image-Edit-2511, upscale via SeedVR2; propose installs (Florence2+SAM2, inpaint-nodes LaMa, ToSVG) on an askwright page since installing third-party node packs waits on Mark.
+0. Wiki after Mark makes the repo public. Worth follow-ups (log). Wire phw rung 3 routes to the now-installed ComfyUI nodes: select by text (Florence2+SAM2), fill/remove (LaMa, Qwen-Image-Edit-2511), cutout (BiRefNet), upscale (SeedVR2), relight (IC-Light+DA-V2 Small), layers (layerdiffuse/Qwen-Image-Layered). Update references/comfyui-nodes.md Installed column.
 
 1. Step G done 2026-11-17: Szeliski read and distilled (ai-docs/notes/szeliski.md). Next: build its 10 proposals, each test first (adjust luminance curves and equalise, bilateral denoise, warp prefilter, pyramid composite, median stack, fill/stitch doc lines, upscale invented flag). The rest of ai-docs/notes/books.md are leads.
 2. Step E: first real jobs, one per kind from Mark's five projects (Arvum sprites, SpaceDeckBuilder2 cards, polywright print/laser, AI film stills, markdavidrogers.com images): a photo retouch, a layered composite, a batch over a folder (phw batch, dry run first), a trace to a clean vector (phw trace + vcheck + export, DXF for laser). Each goes through the bars, then to Mark on an askwright page. Whatever fails becomes a test.
