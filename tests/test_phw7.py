@@ -52,6 +52,8 @@ class Bridge(unittest.TestCase):
         os.environ.pop("PHW_RUNG_MAX", None)
 
     def test_closed_editors_emit_only(self):
+        if phw.rung_max() < 4:
+            self.skipTest("PHW_RUNG_MAX hides rung 4: refusal is covered by the rung-max test")
         for to, ext in (("photopea", ".js"), ("photoshop", ".jsx")):
             r = run("bridge", self.ora, "--to", to)
             self.assertEqual((r["status"], r["rung"]), ("emitted", 4))
