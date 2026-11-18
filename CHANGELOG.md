@@ -6,6 +6,11 @@ Entry shape: `### C-YYYYMMDD-n · date · one-line summary`, then `because:`, `f
 
 ## Unreleased
 
+### C-20261118-5 · 2026-11-18 · 0.9.0: `filter` and `color` commands for rung 1 gaps in the coverage table
+because: coverage sweep (ai-docs/notes/coverage-gaps-2026-11-17.md) found Gaussian/Box/Motion Blur, High Pass, Maximum/Minimum, Offset, Invert, Posterize, Threshold, Solarize, Channel Mixer and Gradient Map rows (all rung 1) unbuilt.
+files: scripts/phw/filters.py, scripts/phw/__init__.py, tests/test_phw8.py, scripts/phw/core.py, .claude-plugin/plugin.json.
+New `filter` (blur gaussian|box|motion, --high-pass, --maximum, --minimum, --offset) and `color` (--invert, --posterize, --threshold, --solarize, --mixer, --gradient-map) commands, NumPy only, encoded values, --mask and --recipe like every op; proofs in tests/test_phw8.py.
+
 ### C-20261117-3 · 2026-11-17 · opt-in VTracer 1.x CLI backend after a measured photo win
 because: bake-off (ai-docs/notes/bakeoff/vtracer1-2026-11-17.md): VTracer 1.0.0-alpha.4 `--preset poster` scores 0.884 vs 0.840 overlap on the photo, in budget; default 1.0 output equals 0.6.15.
 files: scripts/phw/vtrace.py, tests/test_phw4.py, kb/tools.json, references/vectorize.md.
