@@ -6,6 +6,11 @@ Entry shape: `### C-YYYYMMDD-n · date · one-line summary`, then `because:`, `f
 
 ## Unreleased
 
+### C-20261118-19 · 2026-11-18 · 0.23.0: relight by prompt and direction (IC-Light + Depth Anything V2 Small, rung 3)
+because: references/comfyui-nodes.md listed IC-Light and controlnet_aux DA-V2 Small as installed on 8199 but not wired.
+files: scripts/phw/comfy.py, scripts/phw/transform.py, scripts/phw/core.py, tests/test_comfy.py, skills/photowright/SKILL.md, references/comfyui-nodes.md, .claude-plugin/plugin.json
+New `relight IMG --prompt "..." --light left|right|top|bottom|none [--seed N]`: kijai IC-Light v1 fc (`LoadAndApplyICLightUnet` + `ICLightConditioning`, iclight_sd15_fc on SD1.5 v1-5-pruned-emaonly) sampled from a direction gradient multiplied by the Depth Anything V2 Small depth (`DepthAnythingV2Preprocessor`, vits only for the licence), at about 0.33 MP in multiples of 64, resized back with Lanczos, alpha kept, `invented_detail` set. Refuses a busy queue like qwen-edit; falls back (and `--method own` runs) to an own directional gain ramp in linear light. Input names checked on /object_info 2026-11-18; no live render yet (GPU busy).
+
 ### C-20261118-18 · 2026-11-18 · 0.22.0: Inkscape manual lessons for trace, simplify, vcheck and export
 because: ai-docs/notes/inkscape-manual.md (session 35) listed build candidates 1-7, 9 and 12 as open.
 files: scripts/phw/vtrace.py, scripts/phw/vector.py, scripts/phw/core.py, tests/test_phw21.py, skills/photowright/SKILL.md, .claude-plugin/plugin.json, ai-docs/notes/inkscape-manual.md

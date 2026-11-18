@@ -113,6 +113,40 @@ class SeedVR2Graph(unittest.TestCase):
         self.assertEqual(g["post"]["inputs"]["original_resized_images"], ["rs", 0])
 
 
+class ICLightGraph(unittest.TestCase):
+
+    def test_iclight_graph_with_direction(self):
+        g = comfy.graph_iclight("a.png", "l.png", "warm sunset light", 5, 576, 512)
+        Graphs.links_ok(self, g)
+        classes = {n["class_type"] for n in g.values()}
+        for c in ("LoadAndApplyICLightUnet", "ICLightConditioning", "DepthAnythingV2Preprocessor", "ImageBlend",
+                  "CheckpointLoaderSimple"):
+            self.assertIn(c, classes)
+        self.assertEqual(g["ic"]["inputs"]["model_path"], comfy.ICLIGHT)
+        self.assertEqual(g["depth"]["inputs"]["ckpt_name"], "depth_anything_v2_vits.pth")  # Small only (licence)
+        self.assertEqual(g["ckpt"]["inputs"]["ckpt_name"], comfy.SD15)
+        self.assertEqual(g["pos0"]["inputs"]["text"], "warm sunset light")
+        ks = g["ks"]["inputs"]
+        self.assertEqual((ks["latent_image"], ks["denoise"], ks["seed"]), (["init", 0], 0.9, 5))
+        self.assertEqual((ks["positive"], ks["negative"]), (["icc", 0], ["icc", 1]))
+        self.assertEqual(g["lit"]["inputs"]["blend_mode"], "multiply")
+
+    def test_iclight_graph_no_direction(self):
+        g = comfy.graph_iclight("a.png", None, "neon", 1, 512, 640)
+        Graphs.links_ok(self, g)
+        self.assertNotIn("depth", g)
+        self.assertEqual((g["ks"]["inputs"]["latent_image"], g["ks"]["inputs"]["denoise"]), (["icc", 2], 1.0))
+
+    def test_light_gradient_and_size(self):
+        g = comfy.light_gradient(8, 4, "left")
+        self.assertGreater(g[0, 0, 0], g[0, -1, 0])
+        g = comfy.light_gradient(8, 4, "bottom")
+        self.assertGreater(g[-1, 0, 0], g[0, 0, 0])
+        w, h = comfy.relight_size(1920, 1080)
+        self.assertEqual((w % 64, h % 64), (0, 0))
+        self.assertGreater(w, h)
+
+
 class Fallback(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
@@ -259,6 +293,67 @@ class Fallback(unittest.TestCase):
         self.assertEqual((prm["model"], prm["seed"]), (comfy.SEEDVR2["7b"], 9))
         self.assertTrue(any("invents detail" in n for n in r["notes"]))
         self.assertEqual(Image.open(r["output"]).size, (192, 160))
+
+    def test_relight_needs_prompt(self):
+        with self.assertRaises(SystemExit) as cm:
+            run("relight", self.src, "--light", "left", "-o", self.d / "r.png")
+        self.assertIn("--prompt", str(cm.exception))
+
+    def test_relight_refused_when_rung_hidden(self):
+        def boom(*a, **k):
+            raise AssertionError("contacted the server with rung 3 hidden")
+        with mock.patch.dict(os.environ, {"PHW_RUNG_MAX": "1"}), mock.patch("urllib.request.urlopen", side_effect=boom):
+            r = run("relight", self.src, "--prompt", "sunset", "--light", "left", "-o", self.d / "r.png")
+        self.assertEqual(r["rung"], 1)
+        self.assertTrue(any("hides rung 3" in n for n in r["notes"]), r["notes"])
+        self.assertFalse(r["steps"][0]["params"]["invented_detail"])
+
+    def test_relight_falls_back_when_down(self):
+        with self.down():
+            r = run("relight", self.src, "--model", "iclight", "--prompt", "sunset", "--light", "right",
+                    "-o", self.d / "r.png")
+        self.assertEqual(r["rung"], 1)
+        self.assertTrue(any(n.startswith("fell back: ComfyUI server unreachable") for n in r["notes"]), r["notes"])
+        b = np.asarray(Image.open(r["output"]).convert("RGB")).astype(int)
+        self.assertGreater(b[:, -10:].mean(), b[:, :10].mean())   # lit from the right
+        self.assertEqual(b.shape[:2], self.a.shape[:2])
+
+    def test_relight_refuses_busy_queue(self):
+        def fake(path, data=None, headers=None, timeout=30):
+            if path == "/queue":
+                return b'{"queue_running": [[0, "h3"]], "queue_pending": []}'
+            raise AssertionError(f"queued or called {path} on a busy server")
+        with mock.patch.object(comfy, "check"), mock.patch.object(comfy, "upload", return_value="x.png"), \
+                mock.patch.object(comfy, "_req", side_effect=fake):
+            r = run("relight", self.src, "--prompt", "sunset", "-o", self.d / "r.png")
+        self.assertEqual(r["rung"], 1)
+        self.assertTrue(any("ComfyUI is busy (1 jobs ahead" in n for n in r["notes"]), r["notes"])
+
+    def test_mocked_relight_resizes_back_and_flags(self):
+        seen = {}
+
+        def fake_post(path, data=None, headers=None, timeout=30):
+            if path == "/queue":
+                return b'{"queue_running": [], "queue_pending": []}'
+            if path == "/prompt":
+                seen["graph"] = json.loads(data)["prompt"]
+                return b'{"prompt_id": "p1"}'
+            if path.startswith("/history/"):
+                return b'{"p1": {"status": {"completed": true}, "outputs": {"out": {"images": [{"filename": "o.png"}]}}}}'
+            raise AssertionError(path)
+        with mock.patch.object(comfy, "check"), mock.patch.object(comfy, "upload", side_effect=lambda d, n: n), \
+                mock.patch.object(comfy, "_req", side_effect=fake_post), \
+                mock.patch.object(comfy, "fetch_first", return_value=np.full((512, 576, 3), 0.25, np.float32)):
+            r = run("relight", self.src, "--model", "iclight", "--prompt", "blue rim light", "--light", "top",
+                    "--seed", 7, "-o", self.d / "r.png")
+        self.assertEqual(r["rung"], 3)
+        prm = r["steps"][0]["params"]
+        self.assertEqual((prm["model"], prm["seed"], prm["depth"]),
+                         (f"{comfy.ICLIGHT} on {comfy.SD15}", 7, comfy.DAV2_SMALL))
+        self.assertTrue(prm["invented_detail"])
+        self.assertEqual(seen["graph"]["pos0"]["inputs"]["text"], "blue rim light")
+        self.assertTrue(seen["graph"]["limg"]["inputs"]["image"].endswith("_light.png"))
+        self.assertEqual(Image.open(r["output"]).size, (96, 80))
 
 
 @unittest.skipUnless(server_up(), LIVE_SKIP or "")

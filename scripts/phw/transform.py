@@ -214,6 +214,56 @@ def op_upscale(img, p, used):
     return r
 
 
+# ---------------------------------------------------------------- relight
+def own_light(c, light, strength):
+    """Rung 1 stand-in: a directional gain ramp in linear light (no shading, no shadows)."""
+    from .comfy import light_gradient
+    if light == "none":
+        return c
+    h, w = c.shape[:2]
+    g = light_gradient(w, h, light)[..., :1]
+    gain = (1 - strength) + 2 * strength * g
+    return np.clip(to_enc(to_lin(c) * gain), 0, 1)
+
+
+def op_relight(img, p, used):
+    from . import comfy
+    c = img.color()
+    nc = c.shape[2]
+    rgb = c if nc >= 3 else np.repeat(c, 3, axis=2)
+    if p.get("method", "iclight") == "iclight":
+        try:
+            res, info = comfy.iclight_relight(rgb[..., :3], p["prompt"], p["light"], int(p.get("seed", 0)))
+            if nc == 1:
+                res = res.mean(axis=2, keepdims=True)
+            px = np.concatenate([res, img.px[..., nc:]], axis=2) if img.alpha else res
+            used.add("relight", 3, f"ComfyUI IC-Light ({info['model']}) + Depth Anything V2 Small")
+            p.update(model=info["model"], depth=info["depth"], seed=info["seed"], work_size=info["work_size"],
+                     invented_detail=True)
+            out = img.copy(px=px.astype(np.float32))
+            out.notes.append(f"rung 3 IC-Light via {info['server']}: {info['seconds']} s, {info['queued_ahead']} jobs ahead")
+            out.notes.append(f"IC-Light repaints the whole frame at {info['work_size'][0]}x{info['work_size'][1]} "
+                             "(SD1.5): check faces, text and fine detail against the source (alpha is kept)")
+            return out
+        except comfy.Unavailable as e:
+            p["fell_back"] = str(e)
+            note = f"fell back: {e}"
+    else:
+        note = None
+    res = own_light(c, p["light"], float(p.get("strength", 0.5)))
+    used.add("relight", 1, "own directional gain in linear light")
+    px = np.concatenate([res, img.px[..., nc:]], axis=2) if img.alpha else res
+    out = img.copy(px=px.astype(np.float32))
+    if note:
+        out.notes.append(note)
+    out.notes.append("rung 1 relight is a directional brightness ramp only; the prompt is not used")
+    p["invented_detail"] = False
+    return out
+
+
+OPS["relight"] = op_relight
+
+
 # ---------------------------------------------------------------- pyramids (own, rung 1)
 _K = np.array([1, 4, 6, 4, 1], np.float32) / 16
 
@@ -452,6 +502,13 @@ def cmd_upscale(a):
     return one_step(a, "upscale", p)
 
 
+def cmd_relight(a):
+    if a.method == "iclight" and not a.prompt:
+        raise SystemExit('relight --model iclight needs --prompt "the light, e.g. warm sunset light from the window"')
+    p = {"method": a.method, "light": a.light, "prompt": a.prompt or "", "seed": a.seed, "strength": a.strength}
+    return one_step(a, "relight", p)
+
+
 def multi(a, tag, p):
     a.input, others = a.inputs[0], a.inputs[1:]
     if not others:
@@ -491,6 +548,15 @@ def add_commands(sub, edit):
     p.add_argument("--model", dest="method", choices=("seedvr2",), help="same as --method seedvr2")
     p.add_argument("--size", choices=("3b", "7b"), default="3b", help="SeedVR2 weights (7b: slower, ~16 GB VRAM)")
     p.add_argument("--seed", type=int, default=0)
+    p = edit("relight", cmd_relight, "relight by prompt and light direction: IC-Light + Depth Anything V2 Small via "
+             "ComfyUI (rung 3); falls back to an own directional ramp (rung 1)")
+    p.add_argument("--prompt", help="the lighting to paint, e.g. 'warm sunset light, soft shadows'")
+    p.add_argument("--light", choices=("left", "right", "top", "bottom", "none"), default="left",
+                   help="side the light comes from (none: prompt only)")
+    p.add_argument("--method", choices=("iclight", "own"), default="iclight")
+    p.add_argument("--model", dest="method", choices=("iclight",), help="same as --method iclight")
+    p.add_argument("--strength", type=float, default=0.5, help="rung 1 ramp strength 0..1")
+    p.add_argument("--seed", type=int, default=0)
     for name, fn, help_ in (("stack", cmd_stack, "exposure fusion (Mertens) or focus stack of aligned images"),
                             ("stitch", cmd_stitch, "panorama stitch (OpenCV, rung 2; rung 1 refuses)")):
         p = sub.add_parser(name, help=help_)
@@ -511,6 +577,8 @@ core.DOCTOR_GROUPS.append(lambda: {
     "warp, perspective": (2, "OpenCV remap") if probe("cv2") else (1, "own bilinear sampling"),
     "upscale": (1, "Lanczos in linear light"),
     "upscale --method seedvr2": (3, "SeedVR2 3B/7B int8 via ComfyUI core nodes; falls back to Lanczos"),
+    "relight --model iclight": (3, "IC-Light v1 fc + Depth Anything V2 Small via ComfyUI; falls back to own ramp"),
+    "relight --method own": (1, "own directional gain in linear light"),
     "upscale --method realesrgan": (3, "not built: comfyui-gen route documented"),
     "stitch": (2, "OpenCV Stitcher") if probe("cv2") else (0, "refused at rung 1 (needs OpenCV)"),
     "stack (exposure, focus)": (1, "own Laplacian pyramids"),
