@@ -48,22 +48,22 @@ Status: **BUILT 0.9.0** = built in this session (tests/test_phw8.py); gap = stil
 | Quick Selection | 2 | partial (GrabCut in cutout) | `select` |
 | Spot Healing Brush | 2 | partial (`heal`) | `heal` |
 | Content-Aware Move / Extend | 2 | gap | `fill` |
-| Dodge / Burn / Sponge | 1 | gap | `adjust --mask` route |
+| Dodge / Burn / Sponge | 1 | **BUILT 0.12.0** `tonebrush --mask` (highlights dodge moves bright 3x dark, 0/255 fixed; sponge chroma -40%, luma within 2/255) | `adjust --mask` route |
 | Blur / Sharpen / Smudge brushes, brush engine | 1 | gap (no strokes) | new `paint` |
 | Eraser / Magic Eraser / Paint Bucket | 1 | partial (cutout colour key, flood select) | `mask`/`select` |
 | Liquify | 1 | gap | `warp` |
 | Frequency separation | 1 | **BUILT 0.11.0** `detail --freq-sep --part low|high` (low+high-0.5 within 2/255) | `filter` |
-| Radial, Lens, Surface, Shape blur; Blur Gallery | 1 | gap (denoise bilateral is close to Surface Blur) | `filter` |
+| Radial, Lens, Surface, Shape blur; Blur Gallery | 1 | partial: **BUILT 0.12.0** `blurfx --spin/--zoom` (rings/spokes kept, spoke spread halved) and `--surface R,T` (100-level step exact, noise std halved); Lens, Shape, Gallery gap | `filter` |
 | Smart Sharpen | 1 | **BUILT 0.11.0** `detail --smart-sharpen` Wiener (sigma 1.5 blur: RMS < 70% of blurred and below unsharp) | `sharpen` |
 | Shake Reduction | 2 | gap | `sharpen` |
 | Add Noise | 1 | **BUILT 0.10.0** (std within 5%, mean shift < 0.5/255, seeded) | `filter` |
-| Emboss, Find Edges, Trace Contour | 1 | **BUILT 0.10.0** Emboss + Find Edges (flat -> 128 / 255 exactly); Trace Contour gap | `filter` |
-| Diffuse, Wind, Extrude, Tiles; Oil Paint; Pixelate family | 1 | partial: **BUILT 0.11.0** Mosaic `pixelate --cell` (cell = source mean within 1/255); rest gap | `filter` |
-| Distort family (Pinch, Twirl, Polar ...) | 1 | partial: **BUILT 0.11.0** `distort --pinch/--twirl/--polar` (outside circle within 1/255; polar rows->rings within 3/255); Ripple, Wave, Spherize, ZigZag gap | `warp` |
+| Emboss, Find Edges, Trace Contour | 1 | **BUILT 0.10.0** Emboss + Find Edges (flat -> 128 / 255 exactly); **BUILT 0.12.0** Trace Contour (black pixels within 1.5 px of a disc's radius) | `filter` |
+| Diffuse, Wind, Extrude, Tiles; Oil Paint; Pixelate family | 1 | partial: **BUILT 0.11.0** Mosaic `pixelate --cell` (cell = source mean within 1/255); **BUILT 0.12.0** Crystallize (cell = source mean within 1/255), Color Halftone (flat grey mean within 10/255), Diffuse (3x3 neighbour, seeded), Wind (one-sided decaying trail), Oil Paint (Kuwahara: step two-valued, noise std halved); Extrude, Tiles, Pointillize gap | `filter` |
+| Distort family (Pinch, Twirl, Polar ...) | 1 | partial: **BUILT 0.11.0** `distort --pinch/--twirl/--polar` (outside circle within 1/255; polar rows->rings within 3/255); **BUILT 0.12.0** `warpfx` Wave/Ripple (line follows amp sin within 1 px), Spherize (disc +30%/-20%, corners within 1/255), ZigZag (rings within 3/255) | `warp` |
 | Adaptive Wide Angle | 2 | gap | `perspective` |
-| Lens Correction | 1 | gap | `perspective` |
+| Lens Correction | 1 | **BUILT 0.12.0** `warpfx --lens k1,k2` (dot lands at the solved radius within 1 px) | `perspective` |
 | Vanishing Point | 1 | gap | `clone` |
-| Clouds / Fibers, Lens Flare / Lighting | 1 | gap | `filter` |
+| Clouds / Fibers, Lens Flare / Lighting | 1 | partial: **BUILT 0.12.0** Clouds (seeded, between fg/bg, low-frequency energy > 4x high); rest gap | `filter` |
 | Filter Gallery | 1 | gap | `filter` |
 | Custom kernel, De-Interlace, NTSC Colors | 1 | gap | `filter` |
 | Content Credentials (C2PA) | 2 | gap | `convert` |
@@ -81,4 +81,6 @@ Built in 0.10.0 (tests/test_phw9.py): Auto Tone/Contrast/Color, Vibrance, Shadow
 
 Built in 0.11.0 (tests/test_phw10.py): Brightness/Contrast, Color Balance, Photo Filter, Selective Color, Desaturate, Dehaze, Clarity, Smart Sharpen, Frequency separation, skew, Pinch, Twirl, Polar, Mosaic.
 
-Next most valuable rung 1 builds: Texture (fine-scale clarity), rest of Distort (Ripple, Wave, Spherize, ZigZag), Pixelate rest (Crystallize, Pointillize, Color Halftone), Radial/Lens/Surface blur, Liquify (`warp` mesh exists), Dodge/Burn/Sponge, Trace Contour, Diffuse/Wind/Oil Paint, Lens Correction (radial k1/k2), Apply Image/Calculations, Reveal All, Clouds.
+Built in 0.12.0 (tests/test_phw11.py): Wave/Ripple, Spherize, ZigZag, Lens Correction, Crystallize, Color Halftone, Trace Contour, Diffuse, Wind, Oil Paint, Clouds, Radial spin/zoom, Surface Blur, Dodge/Burn/Sponge (tonebrush over a mask).
+
+Next most valuable rung 1 builds (after 0.12.0): Texture (fine-scale clarity), Liquify (`warp` mesh exists), Apply Image/Calculations, Reveal All, Pointillize/Extrude/Tiles, Lens/Shape blur, Lens Flare/Lighting, Custom kernel, Variables (batch).

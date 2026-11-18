@@ -1,5 +1,7 @@
 # HANDOFF: photowright
 
+2026-11-18 (session 26): 8199 busy again (H3 render; SeedVR2/qwen-edit still unmeasured). Built phw 0.12.0: `warpfx`, `stylize`, `blurfx`, `tonebrush` (17 rung 1 rows, scripts/phw/stylize.py, tests/test_phw11.py, 15 tests); PHW_RUNG_MAX=1 suite 180 pass + 10 skip. Next rung 1 builds: bottom of [notes/coverage-gaps-2026-11-17.md](notes/coverage-gaps-2026-11-17.md) (Texture, Liquify, Apply Image/Calculations, Reveal All, Pointillize/Extrude/Tiles, Lens/Shape blur, Lens Flare/Lighting, Custom kernel).
+
 2026-11-18 (session 25): 8199 busy again (H3 render; SeedVR2/qwen-edit still unmeasured). Built phw 0.11.0: `grade`, `detail`, `distort`, `pixelate` (14 rung 1 rows, scripts/phw/grading.py, tests/test_phw10.py) plus a ModuleShadowing test that fails when a module in scripts/phw shares a name with a public core attribute. Next rung 1 builds: bottom of [notes/coverage-gaps-2026-11-17.md](notes/coverage-gaps-2026-11-17.md) (Texture, Ripple/Wave/Spherize, Crystallize/Halftone, Radial/Surface blur, Dodge/Burn, Lens Correction...).
 
 2026-11-18 (session 24): 8199 busy again (SeedVR2/qwen-edit unmeasured). Built phw 0.10.0: `tone`, `effect`, `canvas` commands, 9 more rung 1 coverage rows (tests/test_phw9.py); suite 161 pass, rung-1-only 151 + 10 skip. Next rung 1 builds are listed at the bottom of [notes/coverage-gaps-2026-11-17.md](notes/coverage-gaps-2026-11-17.md) (Brightness/Contrast, Color Balance, Photo Filter, Selective Color, Dehaze, Clarity, Smart Sharpen, frequency separation, skew, distort family, pixelate).
