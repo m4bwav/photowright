@@ -124,3 +124,5 @@
 2026-11-18 (session 51): Moebius vs lama NOT run. The first Moebius prompt killed ComfyUI on 8199 with no traceback (empty models/moebius/pretrained, supervisor restarted it). Do not retry on the shared server. ai-docs/notes/bakeoff/moebius-2026-11-18.md
 
 - 2026-11-18 session 52: idle stop; nothing agent-only open, Moebius weights still wait on Mark. Wrap-up: nothing to harvest.
+
+- 2026-11-18 (session 53): Moebius vs lama bake-off run (weights pre-downloaded, no crash). lama wins all 3 cases on seam ratio and speed; Moebius dropped, not wired. Notes: ai-docs/notes/bakeoff/moebius-2026-11-18.md.
