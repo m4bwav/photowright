@@ -1450,5 +1450,18 @@
   "checked": "2026-11-17",
   "source": "https://github.com/vardirhq/open-vectorizer",
   "notes": "not run: no release binaries and no cargo on this PC. Recovers circle/rect primitives from anti-aliased edges; author claims beats VTracer and potrace on shape-heavy input. A browser build exists (vector.vardir.no) but that is a web page, not a CLI. Retest when a binary ships or Rust is installed."
+ },
+ {
+  "name": "pillow-jxl-plugin",
+  "kind": "library",
+  "code_licence": "GPL-3.0 (repo LICENSE, read 2026-11-18); libjxl BSD-3",
+  "weights_licence": null,
+  "needs_account_key_or_gate": false,
+  "output_sellable": true,
+  "install_size": "~5 MB wheel",
+  "rung": 2,
+  "checked": "2026-11-18",
+  "source": "https://github.com/Isotr0py/pillow-jpegxl-plugin/blob/main/LICENSE",
+  "notes": "JPEG XL read for phw (rawio). Copyleft: optional package probed at run time, never bundled or listed as a dependency; PyPI metadata has no licence field."
  }
 ]
