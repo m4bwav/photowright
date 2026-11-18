@@ -24,7 +24,7 @@ Status: **BUILT 0.9.0** = built in this session (tests/test_phw8.py); gap = stil
 | Photo Filter | 1 | **BUILT 0.11.0** `grade --photo-filter` (density 0 identity, luma within 1/255) | `color` |
 | Selective Color | 1 | **BUILT 0.11.0** `grade --selective` absolute (reds c+1: pure red -> R 0; greys, blue untouched) | `color` |
 | Shadows/Highlights | 1 | **BUILT 0.10.0** (dark side +15/255, bright side within 1/255, hue ratio within 3%) | `adjust` |
-| HDR Toning | 2 | gap | `adjust` |
+| HDR Toning | 1 | **BUILT 0.18.0** `hdrtone --key --white --detail` (Reinhard; monotonic, <= 1, key raises the mean, greys stay neutral within 1/255, detail raises local contrast) | `adjust` |
 | Desaturate | 1 | **BUILT 0.11.0** `grade --desaturate` ((max+min)/2 within 0.5/255) | `adjust` |
 | Match Color / Color Transfer | 1 | **BUILT 0.10.0** (Lab mean within 1.5, self-match within 1/255) | `color --match` |
 | Replace Color | 1 | **BUILT 0.16.0** `replacecolor --pick x,y|--color --fuzziness --hue --saturation --lightness` (beyond fuzziness bit-exact, target hue turns within 1 deg, fuzziness 0 exact colour only) | `color` |
@@ -37,13 +37,13 @@ Status: **BUILT 0.9.0** = built in this session (tests/test_phw8.py); gap = stil
 | Gradient tool, fill layers (gradient, pattern) | 1 | **BUILT 0.16.0** `gradient --kind linear|radial|angle|reflected|diamond --start --end --colors` and `pattern --tile --offset`; `layers` types `gradient`/`pattern` (linear == projection within 1/255, radial == distance, fill layer == command within 1/255, pattern bit-exact) | `layers` |
 | Inner Shadow, Outer/Inner Glow, Bevel, Satin, overlays | 1 | **BUILT 0.16.0** (Satin BUILT 0.17.0: interior bit-exact, alpha kept) `layerstyle --color-overlay --gradient-overlay --inner-shadow --inner-glow --outer-glow --bevel` (overlay exact inside, alpha kept; outer glow leaves the layer bit-exact and falls off; bevel centre unchanged, lit edge brighter); Satin still a gap | `layers` |
 | Smart Objects / Smart Filters / linked | 1 | partial (layered recipe re-renders) | `layers` |
-| Artboards, Layer comps | 1 | gap | `layers` |
+| Artboards, Layer comps | 1 | **BUILT 0.18.0** `comps FILE COMPS.json OUTDIR` (no-override comp == flatten within 1/255, hidden and moved layers == the edited document, source unchanged); artboards via `export-layers --artboards` (0.15.0) | `layers` |
 | Auto-Blend Layers | 2 | partial (stack focus mode) | `stack` |
-| Auto-Align Layers | 2 | gap | `stack --align` |
-| Merge to HDR Pro | 2 | gap (exposure fusion only) | `stack` |
+| Auto-Align Layers | 1 | **BUILT 0.18.0** `autoalign IMGS --outdir` (translation, FFT phase correlation: known integer shifts recovered exactly, overlap bit-exact); rotation/perspective still a gap | `stack --align` |
+| Merge to HDR Pro | 1 | **BUILT 0.18.0** `hdrmerge IMGS --exposures --tonemap reinhard|none --radiance x.npy` (Debevec, sRGB response: 1000:1 ramp at 1/4,1,4 radiance median error < 3%, max < 6%, every single frame > 1.5x worse); camera response recovery still a gap | `stack` |
 | Apply Image / Calculations | 1 | **BUILT 0.13.0** `apply-image --source --channel --blend [--calc]` (normal == source exact, multiply by source luma == brute force within 1/255, opacity 0 identity, --calc grey) | `layers` |
 | Spot channels | 2 | gap | `save` |
-| Magnetic Lasso | 2 | gap | `select` |
+| Magnetic Lasso | 1 | **BUILT 0.18.0** `lasso --points [--polygon]` (intelligent scissors: disc IoU >= 0.95 and above the polygon lasso) | `select` |
 | Focus Area | 1 | **BUILT 0.16.0** `focusarea --radius [--threshold] [--soft]` (Laplacian energy + Otsu, pulled back 2 sigma: sharp/blurred halves >95% right 4 px from the seam, sharp disc IoU > 0.75) | `select --focus` |
 | Quick Selection | 2 | partial (GrabCut in cutout) | `select` |
 | Spot Healing Brush | 2 | partial (`heal`) | `heal` |
@@ -60,9 +60,9 @@ Status: **BUILT 0.9.0** = built in this session (tests/test_phw8.py); gap = stil
 | Emboss, Find Edges, Trace Contour | 1 | **BUILT 0.10.0** Emboss + Find Edges (flat -> 128 / 255 exactly); **BUILT 0.12.0** Trace Contour (black pixels within 1.5 px of a disc's radius) | `filter` |
 | Diffuse, Wind, Extrude, Tiles; Oil Paint; Pixelate family | 1 | partial: **BUILT 0.11.0** Mosaic `pixelate --cell` (cell = source mean within 1/255); **BUILT 0.12.0** Crystallize (cell = source mean within 1/255), Color Halftone (flat grey mean within 10/255), Diffuse (3x3 neighbour, seeded), Wind (one-sided decaying trail), Oil Paint (Kuwahara: step two-valued, noise std halved); **BUILT 0.13.0** `fx --pointillize` (pixels are bg or cell means, flat -> 2 values, seeded), `--extrude` (depth 0 == block means within 1/255, flat -> colour and 0.6x only), `--tiles` (offset 0 identity, pixels from source or bg, seeded) | `filter` |
 | Distort family (Pinch, Twirl, Polar ...) | 1 | partial: **BUILT 0.11.0** `distort --pinch/--twirl/--polar` (outside circle within 1/255; polar rows->rings within 3/255); **BUILT 0.12.0** `warpfx` Wave/Ripple (line follows amp sin within 1 px), Spherize (disc +30%/-20%, corners within 1/255), ZigZag (rings within 3/255) | `warp` |
-| Adaptive Wide Angle | 2 | gap | `perspective` |
+| Adaptive Wide Angle | 1 | **BUILT 0.18.0** whole-frame `widefix --fov --out-fov --model equidistant|equisolid|stereographic|orthographic` (synthetic 180 deg fisheye grid: lines straight within 1 px after, sagged > 2 px before, wrong model worse); per-constraint lines still a gap | `perspective` |
 | Lens Correction | 1 | **BUILT 0.12.0** `warpfx --lens k1,k2` (dot lands at the solved radius within 1 px) | `perspective` |
-| Vanishing Point | 1 | gap | `clone` |
+| Vanishing Point | 1 | **BUILT 0.18.0** `vpclone --src QUAD --dst QUAD` (identity bit-exact, translation == copy bit-exact, plane rendered through a homography: cloned tile mean error < 8/255, outside dst unchanged) | `clone` |
 | Clouds / Fibers, Lens Flare / Lighting | 1 | partial: **BUILT 0.12.0** Clouds (seeded, between fg/bg, low-frequency energy > 4x high); **BUILT 0.13.0** Lens Flare `fx --flare` (0 identity, output >= input, peak gain within 3 px of centre), Lighting `fx --light --light-kind point|spot --bump` (ambient 1 identity, point peaks at light and falls, outside spot cone = colour x ambient within 1/255, bump ridge lit on the light side); **BUILT 0.14.0** `fibers` (seeded, between fg/bg, vertical gradient energy < 1/4 horizontal) | `filter` |
 | Filter Gallery | 1 | **BUILT 0.15.0** `filtergallery --step "CMD ARGS" ... --sheet` (chain == the commands run one by one, mean diff <= 2/255, one sheet tile per stage, replay bit-exact) | `filter` |
 | Custom kernel, De-Interlace, NTSC Colors | 1 | partial: **BUILT 0.13.0** Custom `filter --kernel` (identity bit-exact, 3x3 ones == brute-force mean within 1/255, offset exact); **BUILT 0.14.0** `deinterlace` (kept field bit-exact, combed image restored within 3/255) and `ntsc` (Y+C <= 1.1, Y-C >= -0.2 within 1/255; safe pixels within 1/255) | `filter` |
@@ -73,7 +73,7 @@ Status: **BUILT 0.9.0** = built in this session (tests/test_phw8.py); gap = stil
 | Lens profile correction | 2 | gap | `perspective` |
 | Make Work Path from selection | 2 | partial (trace of a mask) | `trace` |
 | Variables (data-driven graphics) | 1 | **BUILT 0.14.0** `variables TEMPLATE.json DATA.csv OUTDIR --name COL` (each row == `layers` on the edited recipe bit-exact, text and image swapped, template unchanged, rerun writes nothing, a missing-image row reported and the rest finish) | `batch` |
-| Export layers / artboards; Generator assets | 1 | **BUILT 0.15.0** `export-layers FILE OUTDIR [--trim] [--artboards]` (layers composited back == flattened within 1.5/255 from recipe and PSD, trim boxes == layer rects, artboard == group alone); Generator assets still a gap | `open` |
+| Export layers / artboards; Generator assets | 1 | **BUILT 0.15.0** `export-layers FILE OUTDIR [--trim] [--artboards]` (layers composited back == flattened within 1.5/255 from recipe and PSD, trim boxes == layer rects, artboard == group alone); **BUILT 0.18.0** Generator assets `assets FILE OUTDIR` (layer named `blue.png, 200% blue@2x.png, 4x4 tiny.png` gives 10x10, 20x20, 4x4 pure files) | `open` |
 | History / Snapshots | 1 | **BUILT 0.17.0** `run RECIPE --upto N` (0 == source, 1 == first edit bit-exact, N == full replay) | `run` |
 | Layered TIFF, AVIF/HEIC/JXL, camera raw, PDF/EPS open, video layers | 2 | gap | `open`/`convert` |
 
@@ -91,4 +91,6 @@ Built in 0.16.0 (tests/test_phw15.py): Gradient tool, gradient and pattern fill 
 
 Built in 0.17.0 (tests/test_phw16.py): Content-Aware Extend, Shake Reduction (known trace), Indexed colour with dither choice, Satin style, History snapshots (`run --upto N`).
 
-Next most valuable rung 1 builds (after 0.17.0): Vanishing Point, Artboards/Layer comps, Generator assets, Auto-Align Layers, Magnetic Lasso, Merge to HDR (Debevec), HDR Toning.
+Built in 0.18.0 (tests/test_phw17.py): Merge to HDR (Debevec), HDR Toning (Reinhard), Auto-Align (translation), Magnetic Lasso, Vanishing Point clone, Layer Comps, Generator assets, Adaptive Wide Angle (whole frame).
+
+Next most valuable rung 1 builds (after 0.18.0): Auto-Align rotation/perspective, HDR camera response recovery (Debevec gsolve), then the rung 2 rows (Content Credentials, lens profiles, layered TIFF/AVIF/HEIC/JXL/raw).
