@@ -51,9 +51,9 @@ Status: **BUILT 0.9.0** = built in this session (tests/test_phw8.py); gap = stil
 | Dodge / Burn / Sponge | 1 | **BUILT 0.12.0** `tonebrush --mask` (highlights dodge moves bright 3x dark, 0/255 fixed; sponge chroma -40%, luma within 2/255) | `adjust --mask` route |
 | Blur / Sharpen / Smudge brushes, brush engine | 1 | gap (no strokes) | new `paint` |
 | Eraser / Magic Eraser / Paint Bucket | 1 | partial (cutout colour key, flood select) | `mask`/`select` |
-| Liquify | 1 | **BUILT 0.13.0** push `liquify --stroke` (strength 0 identity, flat unchanged, blob centroid moves >4 px along the stroke, far pixels exact) | `warp` |
+| Liquify | 1 | **BUILT 0.13.0** push `liquify --stroke` (strength 0 identity, flat unchanged, blob centroid moves >4 px along the stroke, far pixels exact); **BUILT 0.14.0** `--mode twirl|pucker|bloat` (outside radius bit-exact, flat unchanged, bloat disc area >1.3x, pucker <0.8x) | `warp` |
 | Frequency separation | 1 | **BUILT 0.11.0** `detail --freq-sep --part low|high` (low+high-0.5 within 2/255) | `filter` |
-| Radial, Lens, Surface, Shape blur; Blur Gallery | 1 | partial: **BUILT 0.12.0** `blurfx --spin/--zoom` (rings/spokes kept, spoke spread halved) and `--surface R,T` (100-level step exact, noise std halved); **BUILT 0.13.0** `lensblur --lens R --iris disc|hexagon --boost` (flat unchanged, dot spreads to disc/hexagon area within 15%, boost raises energy >1.5x) and `--shape-blur` (square == box blur within 1/255); Gallery gap | `filter` |
+| Radial, Lens, Surface, Shape blur; Blur Gallery | 1 | partial: **BUILT 0.12.0** `blurfx --spin/--zoom` (rings/spokes kept, spoke spread halved) and `--surface R,T` (100-level step exact, noise std halved); **BUILT 0.13.0** `lensblur --lens R --iris disc|hexagon --boost` (flat unchanged, dot spreads to disc/hexagon area within 15%, boost raises energy >1.5x) and `--shape-blur` (square == box blur within 1/255); **BUILT 0.14.0** `blurgallery --tilt` (band bit-identical, beyond ramp == full Gaussian within 1/255) and `--field` (at a pin == that sigma's Gaussian within 1/255) | `filter` |
 | Smart Sharpen | 1 | **BUILT 0.11.0** `detail --smart-sharpen` Wiener (sigma 1.5 blur: RMS < 70% of blurred and below unsharp) | `sharpen` |
 | Shake Reduction | 2 | gap | `sharpen` |
 | Add Noise | 1 | **BUILT 0.10.0** (std within 5%, mean shift < 0.5/255, seeded) | `filter` |
@@ -63,16 +63,16 @@ Status: **BUILT 0.9.0** = built in this session (tests/test_phw8.py); gap = stil
 | Adaptive Wide Angle | 2 | gap | `perspective` |
 | Lens Correction | 1 | **BUILT 0.12.0** `warpfx --lens k1,k2` (dot lands at the solved radius within 1 px) | `perspective` |
 | Vanishing Point | 1 | gap | `clone` |
-| Clouds / Fibers, Lens Flare / Lighting | 1 | partial: **BUILT 0.12.0** Clouds (seeded, between fg/bg, low-frequency energy > 4x high); **BUILT 0.13.0** Lens Flare `fx --flare` (0 identity, output >= input, peak gain within 3 px of centre), Lighting `fx --light --light-kind point|spot --bump` (ambient 1 identity, point peaks at light and falls, outside spot cone = colour x ambient within 1/255, bump ridge lit on the light side); Fibers gap | `filter` |
+| Clouds / Fibers, Lens Flare / Lighting | 1 | partial: **BUILT 0.12.0** Clouds (seeded, between fg/bg, low-frequency energy > 4x high); **BUILT 0.13.0** Lens Flare `fx --flare` (0 identity, output >= input, peak gain within 3 px of centre), Lighting `fx --light --light-kind point|spot --bump` (ambient 1 identity, point peaks at light and falls, outside spot cone = colour x ambient within 1/255, bump ridge lit on the light side); **BUILT 0.14.0** `fibers` (seeded, between fg/bg, vertical gradient energy < 1/4 horizontal) | `filter` |
 | Filter Gallery | 1 | gap | `filter` |
-| Custom kernel, De-Interlace, NTSC Colors | 1 | partial: **BUILT 0.13.0** Custom `filter --kernel` (identity bit-exact, 3x3 ones == brute-force mean within 1/255, offset exact); De-Interlace, NTSC gap | `filter` |
+| Custom kernel, De-Interlace, NTSC Colors | 1 | partial: **BUILT 0.13.0** Custom `filter --kernel` (identity bit-exact, 3x3 ones == brute-force mean within 1/255, offset exact); **BUILT 0.14.0** `deinterlace` (kept field bit-exact, combed image restored within 3/255) and `ntsc` (Y+C <= 1.1, Y-C >= -0.2 within 1/255; safe pixels within 1/255) | `filter` |
 | Content Credentials (C2PA) | 2 | gap | `convert` |
 | Canvas Size, Trim / Reveal All | 1 | **BUILT 0.10.0** Canvas Size + Trim (pixels exact at anchor, trim(canvas(x)) == x); **BUILT 0.13.0** Reveal All `canvas --reveal-all` on .psd/.ora/layers json (canvas = union of layer rects, old area of the flatten bit-exact, off-canvas layers fully shown) | `crop` |
 | Free Transform (skew) | 1 | **BUILT 0.11.0** `distort --skew X,Y` (line shift = H tan a within 1 px) | `perspective` |
 | Crop and Straighten Photos | 1 | partial (stitch --mode scans) | `stitch` |
 | Lens profile correction | 2 | gap | `perspective` |
 | Make Work Path from selection | 2 | partial (trace of a mask) | `trace` |
-| Variables (data-driven graphics) | 1 | gap | `batch` |
+| Variables (data-driven graphics) | 1 | **BUILT 0.14.0** `variables TEMPLATE.json DATA.csv OUTDIR --name COL` (each row == `layers` on the edited recipe bit-exact, text and image swapped, template unchanged, rerun writes nothing, a missing-image row reported and the rest finish) | `batch` |
 | Export layers / artboards; Generator assets | 1 | partial (`open` extract) | `open` |
 | History / Snapshots | 1 | partial (recipes + log) | `run` |
 | Layered TIFF, AVIF/HEIC/JXL, camera raw, PDF/EPS open, video layers | 2 | gap | `open`/`convert` |
@@ -83,4 +83,6 @@ Built in 0.11.0 (tests/test_phw10.py): Brightness/Contrast, Color Balance, Photo
 
 Built in 0.12.0 (tests/test_phw11.py): Wave/Ripple, Spherize, ZigZag, Lens Correction, Crystallize, Color Halftone, Trace Contour, Diffuse, Wind, Oil Paint, Clouds, Radial spin/zoom, Surface Blur, Dodge/Burn/Sponge (tonebrush over a mask).
 
-Next most valuable rung 1 builds (after 0.13.0): Variables (batch with a CSV of text/image replacements), Blur Gallery (tilt-shift, field blur), Fibers, De-Interlace, NTSC Colors, Liquify extras (twirl, pucker/bloat brushes).
+Built in 0.14.0 (tests/test_phw13.py): Variables, Tilt-Shift, Field Blur, Fibers, De-Interlace, NTSC Colors, Liquify twirl/pucker/bloat.
+
+Next most valuable rung 1 builds (after 0.14.0): Blur Gallery iris and path blur, Filter Gallery (chain preview sheet), Blur/Sharpen/Smudge brushes along strokes, Content-Aware Move, Export layers/artboards, Crop and Straighten Photos.

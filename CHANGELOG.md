@@ -6,6 +6,11 @@ Entry shape: `### C-YYYYMMDD-n · date · one-line summary`, then `because:`, `f
 
 ## Unreleased
 
+### C-20261118-10 · 2026-11-18 · 0.14.0: `variables`, `blurgallery`, `fibers`, `deinterlace`, `ntsc`, `liquify --mode twirl|pucker|bloat`
+because: the gap note's build-next list (ai-docs/notes/coverage-gaps-2026-11-17.md), rung 1 rows.
+files: scripts/phw/datamerge.py, scripts/phw/gallery.py, scripts/phw/kernels.py, scripts/phw/__init__.py, tests/test_phw13.py, skills/photowright/SKILL.md, scripts/phw/core.py, .claude-plugin/plugin.json.
+Variables (CSV data sets over a layers recipe, manifest-skipped reruns, bad rows reported), Tilt-Shift and Field Blur, Fibers, De-Interlace, NTSC Colors and the Twirl/Pucker/Bloat liquify brushes, NumPy only, each with a numeric proof in tests/test_phw13.py.
+
 ### C-20261118-9 · 2026-11-18 · 0.13.0: `apply-image`, `fx`, `lensblur`, `liquify`, `filter --kernel`, `canvas --reveal-all`
 because: the gap note's build-next list (ai-docs/notes/coverage-gaps-2026-11-17.md); 8199 busy again, so rung 1 rows instead of the model measurements.
 files: scripts/phw/kernels.py, scripts/phw/filters.py, scripts/phw/tonal.py, scripts/phw/__init__.py, tests/test_phw12.py, skills/photowright/SKILL.md, scripts/phw/core.py, .claude-plugin/plugin.json.

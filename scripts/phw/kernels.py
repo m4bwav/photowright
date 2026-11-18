@@ -411,6 +411,10 @@ def cmd_lensblur(a):
 
 def cmd_liquify(a):
     pts = [floats(t, 2) for t in a.stroke.replace(";", " ").split()]
+    if a.mode != "push":
+        st = {"op": "liquify.brush", "params": {"points": pts, "radius": a.radius, "strength": a.strength,
+                                                 "mode": a.mode}}
+        return core.edit_command(a, "liquify", with_mask(a, [st]))
     p = {"stroke": pts, "radius": a.radius, "strength": a.strength}
     return core.edit_command(a, "liquify", with_mask(a, [{"op": "liquify", "params": p}]))
 
@@ -453,7 +457,8 @@ def add_commands(sub, edit):
     p.add_argument("--shape", choices=("star", "ring", "square", "disc", "hexagon"), default="star")
     p.add_argument("--mask", help="8-bit mask PNG: edit applies where white")
     p = edit("liquify", cmd_liquify, "forward-warp push along a stroke (rung 1)")
-    p.add_argument("--stroke", required=True, help="'x,y x,y ...' brush path in px")
+    p.add_argument("--stroke", required=True, help="'x,y x,y ...' brush path (push) or brush centres (twirl, pucker, bloat)")
+    p.add_argument("--mode", choices=("push", "twirl", "pucker", "bloat"), default="push")
     p.add_argument("--radius", type=float, default=20.0)
     p.add_argument("--strength", type=float, default=0.5, help="0..1 of each step carried")
     p.add_argument("--mask", help="8-bit mask PNG: edit applies where white")
