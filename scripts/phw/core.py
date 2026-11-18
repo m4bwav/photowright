@@ -41,7 +41,7 @@ try:
 except Exception:  # pragma: no cover - Pillow built without LittleCMS
     ImageCms = None
 
-VERSION = "0.20.0"
+VERSION = "0.21.0"
 ROOT = Path(__file__).resolve().parent.parent.parent
 
 # Hooks filled by the other modules of the package (masks, compose, layered).
@@ -398,6 +398,9 @@ def save(img, path, bits=None, used=None, quality=95):
 
 
 def sha256(path):
+    s = str(path)
+    if not Path(s).exists() and s.endswith("]") and "[" in s:   # doc.pdf[2] / clip.mp4[48]
+        path = s[:s.rindex("[")]
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
