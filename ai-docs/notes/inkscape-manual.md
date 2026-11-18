@@ -17,3 +17,5 @@ Build candidates (each test first):
 12. [inference] Apply clips as a boolean before DXF export; text goes to outlines for cutters.
 
 Already built (checked against scripts/phw/vector.py): 8 (evenodd written and honoured, plain SVG), 10 (EPS BoundingBox is the page), 11 (DXF R12 closed POLYLINE, curves flattened, y up, mm). $INSUNITS is an R2000+ header variable, so it is left out of the R12 writer on purpose. Open: 1-7, 9, 12.
+
+Built in 0.22.0 (session 37, tests/test_phw21.py): 1 (circle fixture: 38/12/9 nodes at tol 0.3/0.6/1.5), 2 (`--speckle`), 3 (`--stack`, `--no-background`), 4 (`--scans N`, exactly N), 5 (`--blur`: halftone 3448 to 55 nodes at r=3), 7 (arcs now exact cubics; repeats, H/V/S/T, open paths were already parsed), 9 (mm viewBox). 6 was already absolute (px), now tested. 12 not built: no polygon boolean or font outliner at rung 1; a clip-path is now reported in the notes.

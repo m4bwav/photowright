@@ -6,6 +6,11 @@ Entry shape: `### C-YYYYMMDD-n · date · one-line summary`, then `because:`, `f
 
 ## Unreleased
 
+### C-20261118-18 · 2026-11-18 · 0.22.0: Inkscape manual lessons for trace, simplify, vcheck and export
+because: ai-docs/notes/inkscape-manual.md (session 35) listed build candidates 1-7, 9 and 12 as open.
+files: scripts/phw/vtrace.py, scripts/phw/vector.py, scripts/phw/core.py, tests/test_phw21.py, skills/photowright/SKILL.md, .claude-plugin/plugin.json, ai-docs/notes/inkscape-manual.md
+`trace` gains `--speckle A` (drop closed loops under A px^2), `--blur R` (Gaussian pre-blur for halftone screens), `--stack` (each colour also covers the ones above it), `--no-background` (drop the page layer) and `--scans N` (exactly N brightness steps with the thresholds reported; Inkscape gives N+1); the option flags force the own region tracer. The path parser converts arcs exactly to cubics (they were read as lines). `export --units mm|in` writes a viewBox in the same unit (1 user unit = 1 mm). A clip-path is reported in the notes instead of dropped silently. Already built: implicit repeats, H/V, S/T and open-path reports in the parser; simplify tolerance was already absolute (now proven by a test). Not built: clips as a boolean and text to outlines before DXF (no polygon boolean or font outliner at rung 1). tests/test_phw20.py restores PHW_RUNG_MAX and skips its rung 2 tests at rung 1 (the rung 1 suite had 8 failures from that leak).
+
 ### C-20261118-17 · 2026-11-18 · 0.21.0: PDF/EPS open, video frames (`frames`), page and frame suffixes
 because: HANDOFF session 33 left PDF/EPS open and video layers as the only open coverage rows (8199 busy, so model-route checks waited again).
 files: scripts/phw/docio.py, scripts/phw/core.py (sha256 strips a page suffix), scripts/phw/__init__.py, tests/test_phw20.py, skills/photowright/SKILL.md, .claude-plugin/plugin.json, ai-docs/notes/coverage-gaps-2026-11-17.md

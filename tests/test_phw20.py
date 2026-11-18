@@ -69,15 +69,19 @@ class Refusals(unittest.TestCase):
     def test_rung1_refuses(self):
         p = self.d / "a.pdf"
         Image.new("RGB", (20, 20), (255, 0, 0)).save(p)
+        old = os.environ.get("PHW_RUNG_MAX")
         os.environ["PHW_RUNG_MAX"] = "1"
         try:
             with self.assertRaises(SystemExit) as c:
                 run("adjust", p, "--exposure", "0.5", "-o", self.d / "o.png")
             self.assertIn("rung 2", str(c.exception))
         finally:
-            del os.environ["PHW_RUNG_MAX"]
+            if old is None:
+                os.environ.pop("PHW_RUNG_MAX", None)
+            else:
+                os.environ["PHW_RUNG_MAX"] = old
 
-    @unittest.skipIf(HAS_GS, "Ghostscript present")
+    @unittest.skipIf(HAS_GS or phw.rung_max() < 2, "Ghostscript present, or rung 1 (refused before the GS check)")
     def test_eps_without_gs(self):
         p = self.d / "a.eps"
         p.write_text("%!PS-Adobe-3.0 EPSF-3.0\n%%BoundingBox: 0 0 10 10\n", encoding="ascii")
@@ -86,7 +90,7 @@ class Refusals(unittest.TestCase):
         self.assertIn("Ghostscript", str(c.exception))
 
 
-@unittest.skipUnless(HAS_PDF, "needs pdftoppm or mutool")
+@unittest.skipUnless(HAS_PDF and phw.rung_max() >= 2, "needs pdftoppm or mutool, and rung 2")
 class PdfOpen(unittest.TestCase):
     def test_pages(self):
         with tempfile.TemporaryDirectory() as td:
@@ -105,7 +109,7 @@ class PdfOpen(unittest.TestCase):
             self.assertEqual(len(rec["source"]["sha256"]), 64)
 
 
-@unittest.skipUnless(HAS_FF, "needs ffmpeg")
+@unittest.skipUnless(HAS_FF and phw.rung_max() >= 2, "needs ffmpeg, and rung 2")
 class VideoFrames(unittest.TestCase):
     def setUp(self):
         self.td = tempfile.TemporaryDirectory()
