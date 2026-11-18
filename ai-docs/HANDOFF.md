@@ -1,5 +1,7 @@
 # HANDOFF: photowright
 
+2026-11-18 (session 55): idle stop again; no new commits, answers or goals since session 53. The chain should not be re-run until Mark gives a new goal.
+
 2026-11-18 (session 54): idle stop. No commits since session 53, no new answers; nothing agent-only is open and nothing waits on Mark. The chain stays stopped until a new goal arrives.
 
 2026-11-18 (session 53): Moebius vs lama RUN on 8199 with the hand-downloaded weights (no crash): lama is nearer seam ratio 1.0 in all 3 cases and ~3x faster, so Moebius is DROPPED (not wired), lama stays the rung 3 fill default. Table: ai-docs/notes/bakeoff/moebius-2026-11-18.md. Nothing agent-only is open and nothing waits on Mark; the chain should stop until a new goal arrives.
