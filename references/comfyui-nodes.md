@@ -8,7 +8,7 @@ Note on GPL node packs: a GPL-3.0 node pack runs inside the user's ComfyUI; phot
 
 ## Local install (D:/ComfyUI, 2026-11-17)
 
-- Custom nodes relevant here: `comfyui_layerstyle` (LayerStyle: has BiRefNet, SAM, matting, colour nodes; the companion `LayerStyle_Advance` pack holds most AI nodes and is NOT installed), `comfyui_essentials` (image ops, remove background helpers), `comfyui-kjnodes`. No RMBG, SAM2, Florence2, inpaint-nodes, BrushNet, SUPIR, IC-Light, Depth Anything, ToSVG or layerdiffuse packs.
+- Custom nodes relevant here: `comfyui_layerstyle` (LayerStyle: has BiRefNet, SAM, matting, colour nodes; the companion `LayerStyle_Advance` pack holds most AI nodes and is NOT installed), `comfyui_essentials` (image ops, remove background helpers), `comfyui-kjnodes`. At survey time no RMBG, SAM2, Florence2, inpaint-nodes, BrushNet, SUPIR, IC-Light, Depth Anything, ToSVG or layerdiffuse packs; since then SAM2, Florence2, inpaint-nodes, IC-Light, controlnet_aux and layerdiffuse were installed (Installed column, rechecked on /object_info 2026-11-18). Still absent: RMBG, BrushNet, SUPIR, ToSVG, UltimateSDUpscale.
 - Models already on disk: `background_removal/birefnet.safetensors` (core ComfyUI background removal node), `diffusion_models/qwen_image_edit_2509_int8`, `qwen_image_edit_2511_fp8` (two builds), `qwen_image_layered_fp8mixed`, `flux-2-klein-4b`, `flux-2-klein-base-4b`, `flux-2-klein-9b-fp8`, `seedvr2_3b_int8` and `seedvr2_7b_int8`, `pid_flux1/flux2_1024_to_4096` (upscale-in-latent, licence not checked here), `rt_detr_v4` detector, `upscale_models/` folder exists (contents not listed in detail).
 
 ## Wired in phw 0.6.0 (2026-11-17)
@@ -37,11 +37,11 @@ Node classes from GET /object_info on the live server: `LoadBackgroundRemovalMod
 | DiffBIR | Apache-2.0 (code) | weights v2.1 licence not verified on a card | ~5 GB | UNVERIFIED | restore | no |
 | CodeFormer face restore nodes | various | S-Lab NC | - | FAIL | - | no |
 | GFPGAN (via ComfyUI core upscale/face nodes or ReActor-style packs) | - | Apache-2.0 | 0.35 GB | PASS (flag invented detail) | restore faces | no |
-| ComfyUI-IC-Light (kijai) / IC-Light-Native (huchenlei) | Apache-2.0 both | IC-Light v1 (SD1.5): HF card front matter creativeml-openrail-m, ungated; IC-Light v2 (Flux) not open | ~1.7 GB + SD1.5 | PASS (v1 only) | relight | no |
+| ComfyUI-IC-Light (kijai) / IC-Light-Native (huchenlei) | Apache-2.0 both | IC-Light v1 (SD1.5): HF card front matter creativeml-openrail-m, ungated; IC-Light v2 (Flux) not open | ~1.7 GB + SD1.5 | PASS (v1 only) | relight | YES (kijai pack, nodes `LoadAndApplyICLightUnet` + `ICLightConditioning`; unet/iclight_sd15_fc and _fbc; checked 2026-11-18); not wired |
 | ComfyUI-DepthAnythingV2 (kijai) | no licence file (all rights reserved by default) | V2-Small Apache-2.0 PASS; V2-Base and V2-Large CC BY-NC-4.0 FAIL | Small ~0.1 GB | Model PASS (Small only); use via comfyui_controlnet_aux instead | depth for relight | no |
-| comfyui_controlnet_aux (Fannovel16) | Apache-2.0 | depth (DA-V2 Small PASS), normal maps (DSINE: check), lineart | small | PASS for Small depth | depth / normal for relight | no |
+| comfyui_controlnet_aux (Fannovel16) | Apache-2.0 | depth (DA-V2 Small PASS), normal maps (DSINE: check), lineart | small | PASS for Small depth | depth / normal for relight | YES (`DepthAnythingV2Preprocessor`, image only; ckpts hold Depth-Anything-V2-Small vits only, checked 2026-11-18); not wired |
 | ComfyUI-ToSVG (Yanick112) | MIT | none: wraps VTracer (MIT) | tiny | PASS | trace (colour) | no |
-| ComfyUI-layerdiffuse (huchenlei) | Apache-2.0 | layerdiffusion-v1 creativeml-openrail-m, ungated | ~0.7 GB + SDXL/SD1.5 | PASS | generate transparent layers, foreground/background split | no |
+| ComfyUI-layerdiffuse (huchenlei) | Apache-2.0 | layerdiffusion-v1 creativeml-openrail-m, ungated | ~0.7 GB + SDXL/SD1.5 | PASS | generate transparent layers, foreground/background split | YES (nodes `LayeredDiffusionApply`/`Decode*`; models/layer_model holds SD1.5 and SDXL transparent and blend weights, checked 2026-11-18); not wired |
 | StarVector 1B im2svg (no mature ComfyUI pack seen) | Apache-2.0 | Apache-2.0, ungated | ~3 GB | PASS (outside ComfyUI) | trace icons/diagrams | no |
 
 ## Recommendations
