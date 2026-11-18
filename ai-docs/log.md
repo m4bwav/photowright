@@ -120,3 +120,5 @@
 2026-11-18 (session 49): lineart-venv found empty; lineart-trace not on PyPI; git install refused by the gate, bake-off not run. Moebius node Apache-2.0 + weights MIT confirmed at source (kb/tools.json rows); node clone into D:/ComfyUI refused. Both installs wait on Mark.
 
 - 2026-11-18 session 50: lineart-trace 0.2.0 vs own centreline: own kept (overlap 0.949-0.975 vs 0.918-0.967, lt 4x faster wall clock, 1 stray point). lineart-trace needs --svg for a full document; its 100% rect crashed parse_svg, fixed 0.25.2 (PR #64, release v0.25.2, wiki updated). 8199 busy all session: Moebius still untested, ComfyUI not restarted.
+
+2026-11-18 (session 51): Moebius vs lama NOT run. The first Moebius prompt killed ComfyUI on 8199 with no traceback (empty models/moebius/pretrained, supervisor restarted it). Do not retry on the shared server. ai-docs/notes/bakeoff/moebius-2026-11-18.md
