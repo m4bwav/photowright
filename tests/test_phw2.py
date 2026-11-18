@@ -486,6 +486,24 @@ class TestLayeredFiles(LayerBase):
         out, doc = self.check_round_trip(".psd")
         self.assertEqual(Path(out).read_bytes()[:4], b"8BPS")
 
+    def test_layered_tiff_round_trip(self):
+        out, doc = self.check_round_trip(".tif")
+        with Image.open(out) as im:  # a plain TIFF reader sees the flat composite
+            self.assertEqual(im.size, (doc.width, doc.height))
+            self.assertIn(37724, im.tag_v2)
+        flat = run("save", self.recipe(sample_recipe(), "d2.json"), "-o", self.d / "flat.tif", "--flat")["output"]
+        with Image.open(flat) as im:
+            self.assertNotIn(37724, im.tag_v2)
+
+    def test_gimp_opens_layered_tiff(self):
+        if os.environ.get("PHW_SKIP_GIMP") or not phw.gimp_console():
+            self.skipTest("GIMP 3 (gimp-console) not found or PHW_SKIP_GIMP set: GIMP check skipped")
+        rp, doc = self.build()
+        out = run("save", rp, "-o", self.d / "g.tif")["output"]
+        got = [g["name"] for g in phw.gimp_layers(out) if g["name"] != "Group added by GIMP"]
+        want = [l.name for l, _ in doc.walk()]
+        self.assertGreaterEqual(len(set(got) & set(want)), len(want) - 1, (got, want))
+
     def test_ora_round_trip(self):
         out, _ = self.check_round_trip(".ora")
         import zipfile

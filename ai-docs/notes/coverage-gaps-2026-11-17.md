@@ -39,8 +39,8 @@ Status: **BUILT 0.9.0** = built in this session (tests/test_phw8.py); gap = stil
 | Smart Objects / Smart Filters / linked | 1 | partial (layered recipe re-renders) | `layers` |
 | Artboards, Layer comps | 1 | **BUILT 0.18.0** `comps FILE COMPS.json OUTDIR` (no-override comp == flatten within 1/255, hidden and moved layers == the edited document, source unchanged); artboards via `export-layers --artboards` (0.15.0) | `layers` |
 | Auto-Blend Layers | 2 | partial (stack focus mode) | `stack` |
-| Auto-Align Layers | 1 | **BUILT 0.18.0** `autoalign IMGS --outdir` (translation, FFT phase correlation: known integer shifts recovered exactly, overlap bit-exact); rotation/perspective still a gap | `stack --align` |
-| Merge to HDR Pro | 1 | **BUILT 0.18.0** `hdrmerge IMGS --exposures --tonemap reinhard|none --radiance x.npy` (Debevec, sRGB response: 1000:1 ramp at 1/4,1,4 radiance median error < 3%, max < 6%, every single frame > 1.5x worse); camera response recovery still a gap | `stack` |
+| Auto-Align Layers | 1 | **BUILT 0.18.0** `autoalign IMGS --outdir` (translation, FFT phase correlation: known integer shifts recovered exactly, overlap bit-exact); **BUILT 0.19.0** `--model rigid|similarity|homography` (Fourier-Mellin + pyramid LK: corners within 0.5 px of a known 7 deg/1.06x similarity and a keystone homography, overlap within 3/255) | `stack --align` |
+| Merge to HDR Pro | 1 | **BUILT 0.18.0** `hdrmerge IMGS --exposures --tonemap reinhard|none --radiance x.npy` (Debevec, sRGB response: 1000:1 ramp at 1/4,1,4 radiance median error < 3%, max < 6%, every single frame > 1.5x worse); **BUILT 0.19.0** `--response recover|curve.json --response-out` (Debevec gsolve: cube-root camera radiance median error < 5%, sRGB guess > 2x worse; curve monotonic and reusable) | `stack` |
 | Apply Image / Calculations | 1 | **BUILT 0.13.0** `apply-image --source --channel --blend [--calc]` (normal == source exact, multiply by source luma == brute force within 1/255, opacity 0 identity, --calc grey) | `layers` |
 | Spot channels | 2 | gap | `save` |
 | Magnetic Lasso | 1 | **BUILT 0.18.0** `lasso --points [--polygon]` (intelligent scissors: disc IoU >= 0.95 and above the polygon lasso) | `select` |
@@ -66,16 +66,16 @@ Status: **BUILT 0.9.0** = built in this session (tests/test_phw8.py); gap = stil
 | Clouds / Fibers, Lens Flare / Lighting | 1 | partial: **BUILT 0.12.0** Clouds (seeded, between fg/bg, low-frequency energy > 4x high); **BUILT 0.13.0** Lens Flare `fx --flare` (0 identity, output >= input, peak gain within 3 px of centre), Lighting `fx --light --light-kind point|spot --bump` (ambient 1 identity, point peaks at light and falls, outside spot cone = colour x ambient within 1/255, bump ridge lit on the light side); **BUILT 0.14.0** `fibers` (seeded, between fg/bg, vertical gradient energy < 1/4 horizontal) | `filter` |
 | Filter Gallery | 1 | **BUILT 0.15.0** `filtergallery --step "CMD ARGS" ... --sheet` (chain == the commands run one by one, mean diff <= 2/255, one sheet tile per stage, replay bit-exact) | `filter` |
 | Custom kernel, De-Interlace, NTSC Colors | 1 | partial: **BUILT 0.13.0** Custom `filter --kernel` (identity bit-exact, 3x3 ones == brute-force mean within 1/255, offset exact); **BUILT 0.14.0** `deinterlace` (kept field bit-exact, combed image restored within 3/255) and `ntsc` (Y+C <= 1.1, Y-C >= -0.2 within 1/255; safe pixels within 1/255) | `filter` |
-| Content Credentials (C2PA) | 2 | gap | `convert` |
+| Content Credentials (C2PA) | 2 | partial: **BUILT 0.19.0** `inspect` detects (JPEG APP11, PNG caBX, JUMBF) and names the claim generator, rung 1; validating/signing needs c2patool (not installed) | `convert` |
 | Canvas Size, Trim / Reveal All | 1 | **BUILT 0.10.0** Canvas Size + Trim (pixels exact at anchor, trim(canvas(x)) == x); **BUILT 0.13.0** Reveal All `canvas --reveal-all` on .psd/.ora/layers json (canvas = union of layer rects, old area of the flatten bit-exact, off-canvas layers fully shown) | `crop` |
 | Free Transform (skew) | 1 | **BUILT 0.11.0** `distort --skew X,Y` (line shift = H tan a within 1 px) | `perspective` |
 | Crop and Straighten Photos | 1 | **BUILT 0.15.0** `cropstraighten SCAN OUTDIR` (two photos at 7 and -12 deg: 2 files, angles within 0.5 deg, sizes within 4 px, content mean error < 6/255) | `stitch` |
-| Lens profile correction | 2 | gap | `perspective` |
+| Lens profile correction | 2 | **BUILT 0.19.0** `lensprofile --db LENSFUN --lens --focal [--aperture]` (own poly3/poly5/ptlens + pa vignetting code; lensfun data CC-BY-SA so never bundled, user points at it; synthetic barrel corrected within 4/255, focal interpolation exact) | `perspective` |
 | Make Work Path from selection | 2 | partial (trace of a mask) | `trace` |
 | Variables (data-driven graphics) | 1 | **BUILT 0.14.0** `variables TEMPLATE.json DATA.csv OUTDIR --name COL` (each row == `layers` on the edited recipe bit-exact, text and image swapped, template unchanged, rerun writes nothing, a missing-image row reported and the rest finish) | `batch` |
 | Export layers / artboards; Generator assets | 1 | **BUILT 0.15.0** `export-layers FILE OUTDIR [--trim] [--artboards]` (layers composited back == flattened within 1.5/255 from recipe and PSD, trim boxes == layer rects, artboard == group alone); **BUILT 0.18.0** Generator assets `assets FILE OUTDIR` (layer named `blue.png, 200% blue@2x.png, 4x4 tiny.png` gives 10x10, 20x20, 4x4 pure files) | `open` |
 | History / Snapshots | 1 | **BUILT 0.17.0** `run RECIPE --upto N` (0 == source, 1 == first edit bit-exact, N == full replay) | `run` |
-| Layered TIFF, AVIF/HEIC/JXL, camera raw, PDF/EPS open, video layers | 2 | gap | `open`/`convert` |
+| Layered TIFF, AVIF/HEIC/JXL, camera raw, PDF/EPS open, video layers | 2 | partial: **BUILT 0.19.0** layered TIFF read/write rung 1 (tag 37724; own reader round-trips the tree, GIMP 3 lists the layers); AVIF via Pillow 12; HEIC/JXL/raw still need pillow-heif / pillow-jxl / rawpy (not installed) | `open`/`convert` |
 
 Built in 0.10.0 (tests/test_phw9.py): Auto Tone/Contrast/Color, Vibrance, Shadows/Highlights, Match Color, Add Noise, Emboss, Find Edges, Canvas Size, Trim.
 

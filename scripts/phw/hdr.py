@@ -25,7 +25,7 @@ from PIL import Image, ImageDraw
 from . import core, masks
 from .core import OPS, floats, to_enc, to_lin
 from .grading import with_mask
-from .transform import bilinear, homography, load_others, multi, pts, remap
+from .transform import _reduce, bilinear, homography, load_others, multi, pts, remap
 
 LUMA = np.array([0.2126, 0.7152, 0.0722], np.float32)
 
@@ -78,13 +78,104 @@ def debevec(imgs, times):
     return np.where(den > 1e-6, num / np.maximum(den, 1e-12), fallback).astype(np.float32)
 
 
+def gsolve(Z, logt, lam=50.0):
+    """Debevec-Malik 1997 response recovery for one channel. Z: (N pixels, P frames) ints 0..255,
+    logt: (P,) log exposure times. Returns g (256,) with g(Z) = ln E + ln t, g(128) = 0."""
+    n, P = Z.shape
+    w = np.minimum(np.arange(256), 255 - np.arange(256)).astype(np.float64) + 1.0
+    rows = n * P + 1 + 254
+    A = np.zeros((rows, 256 + n))
+    b = np.zeros(rows)
+    k = 0
+    for i in range(n):
+        for j in range(P):
+            wij = w[Z[i, j]]
+            A[k, Z[i, j]] = wij
+            A[k, 256 + i] = -wij
+            b[k] = wij * logt[j]
+            k += 1
+    A[k, 128] = 1.0
+    k += 1
+    for z in range(1, 255):
+        A[k, z - 1], A[k, z], A[k, z + 1] = lam * w[z], -2 * lam * w[z], lam * w[z]
+        k += 1
+    x = np.linalg.lstsq(A, b, rcond=None)[0]
+    g = x[:256]
+    return np.maximum.accumulate(g)  # a response is monotonic; clamp solver wiggles in sparse bins
+
+
+def sample_pixels(imgs, n=200, seed=0):
+    """Pixel indices spread over the middle frame's brightness (stratified), for gsolve."""
+    mid = imgs[len(imgs) // 2]
+    v = np.round(mid.mean(axis=2) * 255).astype(int).ravel() if mid.ndim == 3 else np.round(mid * 255).astype(int).ravel()
+    rng = np.random.default_rng(seed)
+    picks = []
+    bins = np.linspace(0, 256, n + 1)
+    for lo, hi in zip(bins[:-1], bins[1:]):
+        idx = np.flatnonzero((v >= lo) & (v < hi))
+        if idx.size:
+            picks.append(int(rng.choice(idx)))
+    if len(picks) < 50:
+        picks = list(rng.choice(v.size, size=min(v.size, n), replace=False))
+    return np.asarray(sorted(set(picks)))
+
+
+def recover_response(imgs, times, lam=50.0, n=200):
+    """Per channel g curves (C, 256) from the brackets themselves."""
+    logt = np.log(np.asarray(times, np.float64))
+    idx = sample_pixels(imgs, n)
+    C = imgs[0].shape[2]
+    out = []
+    for c in range(C):
+        Z = np.stack([np.round(np.clip(im[..., c], 0, 1) * 255).astype(int).ravel()[idx] for im in imgs], 1)
+        out.append(gsolve(Z, logt, lam))
+    g = np.stack(out)
+    return g - np.median(g[:, 128])  # one shared scale across channels keeps white neutral
+
+
+def debevec_curve(imgs, times, g):
+    """Radiance through recovered curves g (C, 256)."""
+    num = np.zeros(imgs[0].shape, np.float64)
+    den = np.zeros(imgs[0].shape, np.float64)
+    wz = np.minimum(np.arange(256), 255 - np.arange(256)).astype(np.float64)
+    order = np.argsort(times)
+    for z, t in zip(imgs, times):
+        Zi = np.round(np.clip(z, 0, 1) * 255).astype(int)
+        lnE = np.stack([g[c][Zi[..., c]] for c in range(Zi.shape[2])], 2) - np.log(t)
+        w = wz[Zi]
+        num += w * lnE
+        den += w
+    short = np.round(np.clip(imgs[order[0]], 0, 1) * 255).astype(int)
+    long_ = np.round(np.clip(imgs[order[-1]], 0, 1) * 255).astype(int)
+    gs = np.stack([g[c][short[..., c]] for c in range(short.shape[2])], 2) - np.log(times[order[0]])
+    gl = np.stack([g[c][long_[..., c]] for c in range(long_.shape[2])], 2) - np.log(times[order[-1]])
+    fb = np.where(short > 127, gs, gl)
+    lnE = np.where(den > 1e-6, num / np.maximum(den, 1e-12), fb)
+    return np.exp(lnE).astype(np.float32)
+
+
 def op_hdrmerge(img, p, used):
     imgs = load_others(p, img, used)
     times = [float(t) for t in p["exposures"]]
     if len(times) != len(imgs):
         raise ValueError(f"hdrmerge: {len(imgs)} images but {len(times)} exposure times")
-    rad = debevec(imgs, times)
-    used.add("hdrmerge", 1, "own Debevec-Malik radiance merge (sRGB response)")
+    resp = p.get("response", "srgb")
+    if resp == "srgb":
+        rad = debevec(imgs, times)
+        used.add("hdrmerge", 1, "own Debevec-Malik radiance merge (sRGB response)")
+    else:
+        if resp == "recover":
+            g = recover_response(imgs, times, p.get("smooth", 50.0))
+            used.add("hdrmerge", 1, "own Debevec-Malik merge with the camera response recovered (gsolve)")
+            if p.get("response_out"):
+                Path(p["response_out"]).write_text(json.dumps({"g": np.round(g, 6).tolist(),
+                                                               "note": "ln exposure per 8-bit code, per channel"}))
+        else:
+            g = np.asarray(json.loads(Path(resp).read_text())["g"], np.float64)
+            used.add("hdrmerge", 1, f"own Debevec-Malik merge with the response curve from {Path(resp).name}")
+        if g.shape[0] != imgs[0].shape[2]:
+            g = np.repeat(g[:1], imgs[0].shape[2], 0)
+        rad = debevec_curve(imgs, times, g)
     img.notes.append(f"radiance max {float(rad.max()):.4g}, min {float(rad.min()):.4g} (relative units)")
     if p.get("tonemap", "reinhard") == "none":
         out = rad / max(float(rad.max()), 1e-12)
@@ -117,7 +208,162 @@ def shift_fill(a, dy, dx):
     return out
 
 
+def warp_h(a, H, fill=0.0):
+    """Sample a (HxW or HxWxC) at H @ [x, y, 1] for every output pixel (output = ref frame)."""
+    h, w = a.shape[:2]
+    yy, xx = np.mgrid[0:h, 0:w].astype(np.float64)
+    d = H[2, 0] * xx + H[2, 1] * yy + H[2, 2]
+    X = (H[0, 0] * xx + H[0, 1] * yy + H[0, 2]) / d
+    Y = (H[1, 0] * xx + H[1, 1] * yy + H[1, 2]) / d
+    arr = a if a.ndim == 3 else a[..., None]
+    out, inside = bilinear(arr.astype(np.float32), X.astype(np.float32), Y.astype(np.float32),
+                           [fill] * arr.shape[2])
+    return (out if a.ndim == 3 else out[..., 0]), inside, X, Y
+
+
+def model_h(model, q):
+    """3x3 from parameters: translation (tx,ty), rigid (th,tx,ty), similarity (a,b,tx,ty), homography (8)."""
+    if model == "translation":
+        return np.array([[1, 0, q[0]], [0, 1, q[1]], [0, 0, 1.0]])
+    if model == "rigid":
+        c, s_ = np.cos(q[0]), np.sin(q[0])
+        return np.array([[c, -s_, q[1]], [s_, c, q[2]], [0, 0, 1.0]])
+    if model == "similarity":
+        return np.array([[q[0], -q[1], q[2]], [q[1], q[0], q[3]], [0, 0, 1.0]])
+    return np.append(q, 1.0).reshape(3, 3)
+
+
+def h_params(model, H):
+    H = H / H[2, 2]
+    if model == "translation":
+        return np.array([H[0, 2], H[1, 2]])
+    if model == "rigid":
+        return np.array([np.arctan2(H[1, 0], H[0, 0]), H[0, 2], H[1, 2]])
+    if model == "similarity":
+        return np.array([(H[0, 0] + H[1, 1]) / 2, (H[1, 0] - H[0, 1]) / 2, H[0, 2], H[1, 2]])
+    return H.ravel()[:8].copy()
+
+
+def lk_refine(ref, mov, H, model, iters=40):
+    """Gauss-Newton direct alignment (forward additive Lucas-Kanade) of mov onto ref."""
+    gy, gx = np.gradient(mov)
+    h, w = ref.shape
+    yy, xx = np.mgrid[0:h, 0:w].astype(np.float64)
+    q = h_params(model, H)
+    k = q.size
+    for _ in range(iters):
+        Hq = model_h(model, q)
+        m, inside, X, Y = warp_h(mov, Hq)
+        if inside.mean() < 0.2:
+            break
+        ix = warp_h(gx, Hq)[0].astype(np.float64)
+        iy = warp_h(gy, Hq)[0].astype(np.float64)
+        d = Hq[2, 0] * xx + Hq[2, 1] * yy + 1.0
+        z = 0 * xx
+        dWu = np.stack([xx / d, yy / d, 1 / d, z, z, z, -X * xx / d, -X * yy / d], -1)
+        dWv = np.stack([z, z, z, xx / d, yy / d, 1 / d, -Y * xx / d, -Y * yy / d], -1)
+        dH = np.zeros((8, k))
+        for i in range(k):  # numeric dH/dq, exact for the linear models
+            e = np.zeros(k)
+            e[i] = 1e-6
+            dH[:, i] = ((model_h(model, q + e) - Hq).ravel()[:8]) / 1e-6
+        J = (ix[..., None] * dWu + iy[..., None] * dWv) @ dH
+        r = m.astype(np.float64) - ref
+        Jm, rm = J[inside], r[inside]
+        step = np.linalg.lstsq(Jm.T @ Jm + 1e-9 * np.eye(k), -Jm.T @ rm, rcond=None)[0]
+        q = q + step
+        if np.abs(step).max() < 1e-6:
+            break
+    Hq = model_h(model, q)
+    m, inside, _, _ = warp_h(mov, Hq)
+    return Hq, (float(np.abs(m - ref)[inside].mean()) if inside.mean() > 0.2 else 1e9)
+
+
+def scale_h(H, s):
+    S = np.diag([s, s, 1.0])
+    return S @ H @ np.linalg.inv(S)
+
+
+def log_polar_mag(g, nt=360):
+    h, w = g.shape
+    win = np.outer(np.hanning(h), np.hanning(w))
+    F = np.log1p(np.abs(np.fft.fftshift(np.fft.fft2((g - g.mean()) * win))))
+    R = min(h, w) / 2.0
+    nr = int(R)
+    rho = np.exp(np.linspace(0, np.log(R), nr))
+    th = np.linspace(0, np.pi, nt, endpoint=False)
+    X = (w / 2 + rho[None, :] * np.cos(th[:, None])).astype(np.float32)
+    Y = (h / 2 + rho[None, :] * np.sin(th[:, None])).astype(np.float32)
+    out, _ = bilinear(F[..., None].astype(np.float32), X, Y, [0.0])
+    return out[..., 0], np.log(R) / (nr - 1), np.pi / nt
+
+
+def global_align(ref, mov, model):
+    """H mapping ref pixel coords to mov pixel coords: Fourier-Mellin guesses, then pyramid LK."""
+    h, w = ref.shape
+    c = np.array([[1, 0, w / 2], [0, 1, h / 2], [0, 0, 1.0]])
+    ci = np.linalg.inv(c)
+    cands = [(0.0, 1.0)]
+    if model != "translation":
+        a, dr, dt = log_polar_mag(ref)
+        b, _, _ = log_polar_mag(mov)
+        dti, dri = phase_shift(a, b)
+        th = dti * dt
+        sc = float(np.exp(dri * dr)) if model != "rigid" else 1.0
+        for t_ in (th, -th, th + np.pi, -th + np.pi):
+            for s_ in ((sc, 1 / sc) if sc != 1.0 else (1.0,)):
+                cands.append((t_, s_))
+    levels = max(1, min(4, int(np.log2(min(h, w) / 32)) + 1))
+    pr, pm = [ref], [mov]
+    for _ in range(levels - 1):
+        pr.append(_reduce(pr[-1]))
+        pm.append(_reduce(pm[-1]))
+    best = None
+    for t_, s_ in cands:
+        Rm = np.array([[s_ * np.cos(t_), -s_ * np.sin(t_), 0], [s_ * np.sin(t_), s_ * np.cos(t_), 0], [0, 0, 1.0]])
+        Hc = c @ Rm @ ci
+        m = warp_h(mov, Hc)[0]
+        dy, dx = phase_shift(ref, m)
+        Hl = scale_h(Hc @ np.array([[1, 0, -dx], [0, 1, -dy], [0, 0, 1.0]]), 0.5 ** (levels - 1))
+        coarse = "similarity" if model == "homography" else model
+        for lv in range(levels - 1, -1, -1):
+            Hl, err = lk_refine(pr[lv], pm[lv], Hl, model if lv == 0 else coarse, iters=15 if lv else 40)
+            if lv:
+                Hl = scale_h(Hl, 2.0)
+        if best is None or err < best[1]:
+            best = (Hl, err)
+    return best
+
+
+def cmd_autoalign_h(a):
+    t0 = time.time()
+    used = core.Used()
+    outdir = Path(a.outdir)
+    outdir.mkdir(parents=True, exist_ok=True)
+    ref = core.load(a.inputs[0], used)
+    g0 = (lum(to_lin(ref.color())) if ref.nc >= 3 else ref.color()[..., 0]).astype(np.float64)
+    res = []
+    for i, f in enumerate(a.inputs):
+        im = core.load(f, used)
+        g = (lum(to_lin(im.color())) if im.nc >= 3 else im.color()[..., 0]).astype(np.float64)
+        if g.shape != g0.shape:
+            raise SystemExit(f"autoalign: {f} differs in size from {a.inputs[0]}")
+        H, err = (np.eye(3), 0.0) if i == 0 else global_align(g0, g, a.model)
+        px = im.px if im.alpha else np.concatenate([im.px, np.ones(im.px.shape[:2] + (1,), np.float32)], 2)
+        moved, inside, _, _ = warp_h(px, H)
+        moved[~inside] = 0
+        out = core.out_for(f, str(outdir / (Path(f).stem + "-aligned.png")), "aligned", ".png")
+        core.save(im.copy(px=moved, alpha=True), out, None, used)
+        res.append({"input": str(f), "output": str(out), "matrix": np.round(H / H[2, 2], 6).tolist(),
+                    "residual": round(err, 5)})
+    used.add("autoalign", 1, f"own Fourier-Mellin + pyramid Lucas-Kanade ({a.model})")
+    return {"command": "autoalign", "model": a.model, "outputs": res, "seconds": round(time.time() - t0, 3),
+            "rung": used.rung(), "tool": used.tool(), "used": used.items}
+
+
 def cmd_autoalign(a):
+    if getattr(a, "model", "translation") != "translation":
+        return cmd_autoalign_h(a)
     t0 = time.time()
     used = core.Used()
     outdir = Path(a.outdir)
@@ -294,6 +540,11 @@ def cmd_hdrtone(a):
 def cmd_hdrmerge(a):
     times = floats(a.exposures)
     p = {"exposures": times, "tonemap": a.tonemap, "key": a.key, "white": a.white, "detail": a.detail}
+    if a.response != "srgb":
+        p["response"] = a.response if a.response == "recover" else str(Path(a.response).resolve())
+        p["smooth"] = a.smooth
+    if a.response_out:
+        p["response_out"] = str(Path(a.response_out).resolve())
     if a.radiance:
         p["radiance"] = str(Path(a.radiance).resolve())
     return multi(a, "hdrmerge", p)
@@ -325,6 +576,10 @@ def add_commands(sub, edit):
     p.add_argument("--white", type=float)
     p.add_argument("--detail", type=float, default=0.0)
     p.add_argument("--radiance", help="also save the float32 radiance map as .npy")
+    p.add_argument("--response", default="srgb",
+                   help="camera response: srgb (assume the sRGB curve), recover (Debevec gsolve from the brackets) or a JSON file saved by --response-out")
+    p.add_argument("--smooth", type=float, default=50.0, help="gsolve smoothness lambda")
+    p.add_argument("--response-out", help="with --response recover: save the curves as JSON for reuse")
     p.add_argument("-o", "--output")
     p.add_argument("--recipe")
     p.add_argument("--bits", type=int, choices=(8, 16))
@@ -332,6 +587,8 @@ def add_commands(sub, edit):
     p = sub.add_parser("autoalign", help="Auto-Align Layers: translate each image onto the first (rung 1)")
     p.add_argument("inputs", nargs="+")
     p.add_argument("--outdir", required=True)
+    p.add_argument("--model", choices=("translation", "rigid", "similarity", "homography"), default="translation",
+                   help="translation = integer FFT shift (bit-exact); the others add rotation, scale, perspective")
     p.set_defaults(fn=cmd_autoalign)
     p = sub.add_parser("lasso", help="Magnetic Lasso: edge-snapping path through anchors to a mask (rung 1)")
     p.add_argument("input")
