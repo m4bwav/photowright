@@ -116,3 +116,5 @@
 - 2026-11-18: chain_loop restart stopped after 8 sessions (no-progress): only third-party installs remain (Moebius ComfyUI node + weights; lineart-trace venv). The auto-mode classifier also refused the lineart-trace pip install from the main session despite Mark's 'don't ask me'; needs a Bash permission rule or a manual install.
 
 - 2026-11-18 session 49: lineart-venv empty, lineart-trace not on PyPI (GitHub only); install refused by permission gate, bake-off not run. Moebius licences confirmed: node Apache-2.0, weights MIT (Moebius + PixelHacker VAE). Waits on Mark: lineart-trace install into the venv, Moebius node install.
+
+2026-11-18 (session 49): lineart-venv found empty; lineart-trace not on PyPI; git install refused by the gate, bake-off not run. Moebius node Apache-2.0 + weights MIT confirmed at source (kb/tools.json rows); node clone into D:/ComfyUI refused. Both installs wait on Mark.

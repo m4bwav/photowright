@@ -1463,5 +1463,35 @@
   "checked": "2026-11-18",
   "source": "https://github.com/Isotr0py/pillow-jpegxl-plugin/blob/main/LICENSE",
   "notes": "JPEG XL read for phw (rawio). Copyleft: optional package probed at run time, never bundled or listed as a dependency; PyPI metadata has no licence field."
+ },
+ {
+  "name": "Moebius inpainting (ComfyUI_moebius_inpainting + hustvl/Moebius, PixelHacker VAE)",
+  "kind": "inpainting",
+  "code_licence": "Apache-2.0",
+  "weights_licence": "MIT",
+  "needs_account_key_or_gate": false,
+  "output_sellable": true,
+  "install_size": "~900 MB checkpoint + ~335 MB VAE",
+  "rung": 3,
+  "default_ok": true,
+  "on_disk_here": false,
+  "checked": "2026-11-18",
+  "source": "https://github.com/b2renger/ComfyUI_moebius_inpainting ; https://huggingface.co/hustvl/Moebius ; https://huggingface.co/hustvl/PixelHacker",
+  "notes": "prompt-free fill, candidate rival to lama; node install refused by permission gate twice, Mark installs via ComfyUI Manager"
+ },
+ {
+  "name": "lineart-trace",
+  "kind": "centreline tracer",
+  "code_licence": "MIT",
+  "weights_licence": "n/a",
+  "needs_account_key_or_gate": false,
+  "output_sellable": true,
+  "install_size": "small (numpy, opencv-python)",
+  "rung": 2,
+  "default_ok": false,
+  "on_disk_here": false,
+  "checked": "2026-11-18",
+  "source": "https://github.com/UCB-BioE-Anderson-Lab/lineart-trace",
+  "notes": "not on PyPI; install from git+https...@v0.2.0; photowright-lab/lineart-venv exists but is empty; bake-off vs phw trace --kind centreline not run"
  }
 ]
