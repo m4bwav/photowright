@@ -1,5 +1,12 @@
 # Layered file formats
 
+## Using phw (moved from SKILL.md, 2026-11-17)
+
+- Read: `PHW open <file.psd|.ora>` lists layers (name, kind, blend, opacity, visible, clip, mask, rect); `--extract <folder>` writes each layer and mask as PNG plus layers.json; `--gimp` also asks GIMP 3.
+- Write: a layers recipe, then `PHW layers <recipe>.json -o out.psd` (or .ora, or a flat .png). Recipe: `{"version": 1, "kind": "layers", "canvas": {"width": W, "height": H}, "layers": [{"file": "a.png", "name": "photo"}, {"file": "b.png", "name": "logo", "blend": "multiply", "opacity": 0.8}]}`, bottom layer first; file paths are relative to the recipe. Layers also take `visible`, `clip`, masks and groups. `--bits 16` for 16-bit.
+- Check the result with `PHW open` before reporting: names, blend and opacity must read back as asked.
+
+
 Checked 2026-11-16. Items marked *unverified* were not confirmed from a primary source in this pass; check before relying on them.
 
 ## PSD and PSB

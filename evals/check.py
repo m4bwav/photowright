@@ -1,18 +1,26 @@
 """Evidence checks for photowright's action evals, run in the eval's work folder.
 
-    python evals/check.py trace|dxf|cutout     # exit 0 = pass
+    python evals/check.py psd|dxf|cutout     # exit 0 = pass
 """
 import json, os, subprocess, sys
 
 PHW = [sys.executable, os.environ.get("PHW_SCRIPT", os.path.join("scripts", "phw.py"))]
 
 
-def trace():
-    r = subprocess.run(PHW + ["--json", "vcheck", "out/logo.svg", "--source", "tests/fixtures/logo.png"],
-                       capture_output=True, text=True)
-    j = json.loads(r.stdout)
-    print("overlap", j.get("overlap"), "paths", j.get("counts", {}).get("paths"))
-    return j["overlap"] >= 0.95 and j["counts"]["paths"] <= 8
+def psd(path="out/poster.psd", replay=True):
+    r = subprocess.run(PHW + ["--json", "open", path], capture_output=True, text=True)
+    layers = json.loads(r.stdout).get("layers", [])
+    print([(l.get("name"), l.get("blend"), l.get("opacity")) for l in layers])
+    by = {l.get("name"): l for l in layers}
+    logo = by.get("mark") or {}
+    ok = (len(layers) == 2 and "background" in by and logo.get("blend") == "multiply"
+          and abs(float(logo.get("opacity", 0)) - 0.7) <= 0.02)
+    if not (ok and replay):
+        return ok
+    # the recipe must rebuild the same file with phw run
+    if subprocess.call(PHW + ["run", "out/poster.json", "-o", "out/replay.psd"]) != 0:
+        return False
+    return psd("out/replay.psd", False)
 
 
 def dxf():
@@ -35,7 +43,7 @@ def cutout():
 
 if __name__ == "__main__":
     try:
-        ok = {"trace": trace, "dxf": dxf, "cutout": cutout}[sys.argv[1]]()
+        ok = {"psd": psd, "dxf": dxf, "cutout": cutout}[sys.argv[1]]()
     except Exception as e:  # missing file, bad JSON: a failed check
         print("error:", e)
         ok = False

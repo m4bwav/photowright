@@ -4,8 +4,8 @@
     python evals/run.py --ids trigger-find-place --runs 3
     python evals/run.py --decoys --runs 1
 
-Each run gets a fresh temp folder holding copies of tests/fixtures/ and
-evals/check.py (never scripts/: a baseline run must not find phw.py), then `claude -p --plugin-dir <repo>` (sonnet, stream-json).
+Each run gets a fresh temp folder holding a copy of tests/fixtures/ (evals/check.py
+is copied in only for the evidence step; never scripts/: a baseline run must not find phw.py), then `claude -p --plugin-dir <repo>` (sonnet, stream-json).
 --baseline drops --plugin-dir; an action case then passes on evidence alone.
 A trigger case passes when a Skill tool_use names photowright (decoys: when
 none does). An action case also runs its evidence command in the run folder.
@@ -40,8 +40,6 @@ def skills_fired(stream):
 def run_case(case, model, timeout, baseline=False):
     work = tempfile.mkdtemp(prefix="phw-eval-")
     shutil.copytree(os.path.join(ROOT, "tests", "fixtures"), os.path.join(work, "tests", "fixtures"))
-    os.makedirs(os.path.join(work, "evals"))
-    shutil.copy(os.path.join(ROOT, "evals", "check.py"), os.path.join(work, "evals", "check.py"))
     cmd = [claude_exe(), "-p", case["prompt"], "--model", model,
            "--output-format", "stream-json", "--verbose"]
     if not baseline:
@@ -62,6 +60,10 @@ def run_case(case, model, timeout, baseline=False):
     note = ""
     ev = case.get("evidence")
     if ok and ev and ev.get("type") == "command":
+        # check.py arrives only after the model is done: it names phw and the
+        # recipe format, and a baseline run read it and found phw on disk
+        os.makedirs(os.path.join(work, "evals"), exist_ok=True)
+        shutil.copy(os.path.join(ROOT, "evals", "check.py"), os.path.join(work, "evals", "check.py"))
         env = dict(os.environ, PHW_SCRIPT=os.path.join(ROOT, "scripts", "phw.py"))
         code = subprocess.call(ev["run"], cwd=work, shell=True, env=env,
                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)

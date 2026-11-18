@@ -8,6 +8,13 @@ Entry shape: `### T-YYYYMMDD-n · date · harness · env · passed/total`, then 
 
 ## Runs
 
+### T-20261117-3 · 2026-11-17 · evals/run.py, claude -p --plugin-dir (sonnet) · Windows · triggers 35/36 runs, decoys 12/12, actions 3/3 cases; baseline new case 0/2
+- After the worth follow-ups (C-20261118-1): description cut from ~248 to ~152 tokens (606 characters), DXF and PSD usage moved to references/.
+- Triggers (2 of 3 to pass): all 8 pass; 23/24 runs (batch 2/3, one run fired no skill). Decoys: 12/12 runs pass, 4/4 cases (artwright, pixelwright-make and comfyui-gen took theirs; brand fired nothing).
+- Action, with skill: layered-psd PASS (2 runs), dxf-laser PASS, cutout PASS 3 of 4 runs (one run left the corner opaque although its recipe was `cutout --method key`, which gives alpha 0 when run by hand; the model's file was not phw's output).
+- New case action-layered-psd replaces action-trace-logo (which the bare model passed). Its first two baseline runs PASSED: the bare model read evals/check.py in the work folder, which names phw and the recipe format, and wrote a matching recipe. run.py now copies check.py in only for the evidence step (L-20261118-1 `check-py-leaks-the-answer`). Baseline after the fix: 0/2. Earlier baselines of dxf and cutout were taken with check.py present and failed anyway.
+- led to: C-20261118-1
+
 ### T-20261117-2 · 2026-11-17 · evals/run.py, claude -p --plugin-dir (sonnet) · Windows · 3/3 failing triggers fixed (9/9 runs)
 - Cause of T-20261117-1's three failures: the prompts named no file, so the model asked for one instead of loading any skill. Real requests come with the file, so the cases now name fixtures: remove-object uses dark-photo.jpg ("remove the yellow ball", matching what is in the file; a prompt about a stranger who is not in the picture still failed 2/3), psd uses the new fixture tests/fixtures/poster.psd (2 layers, written by phw layers), dxf uses logo.png. Each 3/3. Description unchanged.
 - led to: no skill change.

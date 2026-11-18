@@ -4,6 +4,13 @@ Every change to [skills/photowright/SKILL.md](skills/photowright/SKILL.md) and i
 
 Entry shape: `### C-YYYYMMDD-n · date · one-line summary`, then `because:`, `files:`, and a sentence on what changed.
 
+## Unreleased
+
+### C-20261118-1 · 2026-11-17 · worth follow-ups: separating action case, shorter description, DXF/PSD detail on demand
+- because: evergreen-worth lite run (ai-docs/log.md 2026-11-17); T-20261117-3; L-20261118-1
+- files: evals/evals.json, evals/check.py, evals/run.py, skills/photowright/SKILL.md, references/layered-formats.md, references/vector-formats.md
+- action-trace-logo (passed without the skill) is replaced by action-layered-psd: a 2-layer PSD with names, Multiply and 70% opacity plus a layers recipe that `phw run` rebuilds. The description is about 150 tokens with the same neighbour exclusions. The `phw layers` recipe shape and the DXF `--units mm --dpi` sizing moved into "Using phw" sections of the two references. run.py hides check.py from the model until the evidence step.
+
 ### C-20261117-3 · 2026-11-17 · 0.7.0: Szeliski proposals built
 - because: ai-docs/notes/szeliski.md proposals 1-10; tests/test_phw6.py
 - files: scripts/phw/core.py, scripts/phw/transform.py, scripts/phw/compose.py, tests/test_phw6.py, tests/test_phw.py, skills/photowright/SKILL.md, references/image-fundamentals.md, references/retouch-fill.md, references/transform-merge.md

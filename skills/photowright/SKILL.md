@@ -1,6 +1,6 @@
 ---
 name: photowright
-description: "Photoshop-like work on an existing image from the command line, and tracing it to vectors, free tools first and Photoshop never required. Editing an existing image: levels, curves, exposure, white balance, crop, resize, sharpen, denoise, masks, background removal, heal, clone, object removal, content-aware fill, photo restore, perspective, upscale, stacks, panoramas, layers and blend modes, PSD or ORA, one edit over a folder. Tracing it to vectors: raster to SVG for logos, icons, line art, photos and centrelines, checked by render-back, exported as SVG, PDF, EPS or DXF for a laser cutter. Use on 'brighten this photo', 'remove the background', 'remove this person from the photo', 'fix the perspective', 'batch resize this folder', 'open this PSD', 'vectorize my logo', 'trace this to SVG'. Also 'refresh photowright'. Not for critiquing or ranking images (artwright), pixel art or sprites (pixelwright), brand marks from nothing (brandwright) or generating new images (comfyui-gen)."
+description: "Photoshop-like edits on an existing image from the command line, free tools first: levels, colour, crop, resize, sharpen, background removal, heal, object removal, content-aware fill, restore, perspective, upscale, panoramas, layers, PSD, batch over a folder; and tracing raster to SVG, PDF or DXF for a laser cutter. Use on 'brighten this photo', 'remove the background', 'fix the perspective', 'open this PSD', 'vectorize my logo'. Also 'refresh photowright'. Not critique or ranking (artwright), pixel art (pixelwright), brand marks from nothing (brandwright) or new images (comfyui-gen)."
 license: MIT
 metadata:
   version: 0.7.0
@@ -31,7 +31,7 @@ Every result lists the rung and tool used for each step (`used`). Report it in o
 | Select, mask, cut out, background removal | `select`, `mask`, `cutout` | [selection-matting.md](../../references/selection-matting.md) |
 | Fix: spots, objects, red eye, scratches, old photo | `heal`, `clone`, `remove`, `fill`, `restore` | [retouch-fill.md](../../references/retouch-fill.md) |
 | Geometry and merge: warp, perspective, upscale, stack, panorama | `warp`, `perspective`, `upscale`, `stack`, `stitch` | [transform-merge.md](../../references/transform-merge.md), [upscale-restore.md](../../references/upscale-restore.md) |
-| Layers, PSD, ORA, blend modes, text, shadows | `layers`, `open`, `save` | [layered-formats.md](../../references/layered-formats.md) |
+| Layers, PSD, ORA, blend modes, text, shadows | `layers <recipe>`, `open` | [layered-formats.md](../../references/layered-formats.md): read before building or opening a PSD |
 | Many files at once | `batch` (dry run until `--apply`), `run` to replay a recipe | |
 | Show the change | `sheet` (before/after), `diff` (heatmap and numbers) | |
 | Raster to vector | `trace --kind logo\|icon\|line\|photo\|pixel\|centreline`, then `vcheck`, `simplify`, `export` | [vectorize.md](../../references/vectorize.md), [vector-formats.md](../../references/vector-formats.md) |
@@ -52,7 +52,7 @@ Every result lists the rung and tool used for each step (`used`). Report it in o
 1. Pick the kind: `logo` and `icon` for flat colour, `line` for ink and scans, `photo` for many colours, `pixel` for hard pixel edges, `centreline` for single-stroke lines (engraving, plotters).
 2. `PHW trace <image> --kind <kind> -o <file>.svg` checks itself: render-back overlap against the source, node, path and colour budgets, open paths and self-intersections. A failed bar is reported, never hidden. `--backend own` forces own code; VTracer always runs in a subprocess and a crash falls back to the own tracer.
 3. Too many nodes: `PHW simplify`. Then `PHW vcheck <svg> --source <image>` again.
-4. Export: `PHW export <svg> --format svg|pdf|eps|dxf`. For a laser or vinyl cutter use `--format dxf --units mm` and give the size; EPS needs Ghostscript to preview.
+4. Export: `PHW export <svg> --format svg|pdf|eps|dxf`. For a cutter (DXF, units, size) read [vector-formats.md](../../references/vector-formats.md) first.
 
 ## Scope edges
 
