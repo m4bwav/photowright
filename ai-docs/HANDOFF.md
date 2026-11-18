@@ -1,5 +1,7 @@
 # HANDOFF: photowright
 
+2026-11-18 (session 48): lineart-trace checked: MIT (GitHub licence + pyproject), Python, deps numpy + opencv-python, v0.2.0. The bake-off against `trace --kind centreline` was NOT run: pip-installing and running the third-party package (even in a scratch venv) was refused by the permission gate, so it waits on Mark. Waits on Mark: (1) Moebius node + weights on D:/ComfyUI, (2) go-ahead to pip-install lineart-trace into a scratch venv for the centreline bake-off. Nothing agent-only is open; the chain should stop until Mark answers.
+
 2026-11-18 (session 47): last 4 image-editing beat search rows run (note in ~/.everscout/data/image-editing/notes/2026-11/2026-11-18-scan2b-searches.md). Leads: lineart-trace (centreline to Beziers, licence unchecked; compare with own centreline tracer), GIMP 3.2.8 + gimp-batch-folder (bridge). Upscaler/cricut: nothing new. Waits on Mark: Moebius node + weights install on D:/ComfyUI. Open, agent-only: compare lineart-trace against phw centreline if its licence is permissive.
 
 2026-11-18 (session 46): VTracer check closed: the vtracer1 wrapper was built and baked off on 1.0.0-alpha.4, still the latest release (gh release list); PyPI still 0.6.15. No change. Moebius inpainting vs lama NOT run: installing a third-party ComfyUI node and downloading weights was refused by the permission gate, so it waits on Mark (go-ahead to install the node + weights on D:/ComfyUI). 8199 was idle. Open, agent-only: the 4 unrun searches.md rows on the image-editing beat.
