@@ -6,6 +6,10 @@ references/comfyui-nodes.md):
   fill/remove --method lama Acly comfyui-inpaint-nodes INPAINT_LoadInpaintModel + INPAINT_InpaintWithModel (big-lama.pt, Apache-2.0)
   fill --model qwen-edit --prompt "..."  core Qwen-Image-Edit-2511 (fp8mixed + Lightning 4-step LoRA,
                             Apache-2.0) with SetLatentNoiseMask; refuses a busy queue (PHW_COMFY_MAX_AHEAD)
+  relight --prompt "..." --light left  kijai IC-Light v1 fc (LoadAndApplyICLightUnet + ICLightConditioning,
+                            iclight_sd15_fc on SD1.5 v1-5-pruned-emaonly) with the light direction as an init
+                            gradient shaded by Depth Anything V2 Small (controlnet_aux, vits, Apache-2.0);
+                            refuses a busy queue (PHW_COMFY_MAX_AHEAD)
   select --text "..."       kijai Florence2ModelLoader (Florence-2-large, MIT) caption_to_phrase_grounding boxes
                             into kijai Sam2Segmentation (sam2.1_hiera_base_plus, Apache-2.0)
 Flow: upload the image (/upload/image), POST /prompt with an API-format graph, poll /history,
@@ -38,6 +42,10 @@ QWEN_EDIT = "qwen_image_edit_2511_fp8mixed.safetensors"
 QWEN_LORA = "Qwen-Image-Edit-2511-Lightning-4steps-V1.0-bf16.safetensors"
 QWEN_CLIP = "qwen_2.5_vl_7b_fp8_scaled.safetensors"
 QWEN_VAE = "qwen_image_vae.safetensors"
+SD15 = "v1-5-pruned-emaonly.safetensors"
+ICLIGHT = "iclight_sd15_fc.safetensors"
+DAV2_SMALL = "depth_anything_v2_vits.pth"
+LIGHTS = ("left", "right", "top", "bottom", "none")
 
 
 class Unavailable(Exception):
@@ -250,6 +258,66 @@ def graph_qwen_edit(image, mask, prompt, seed, steps=4, megapixels=1.0):
     }
 
 
+def relight_size(w, h, area=512 * 640):
+    """SD1.5 working size: about `area` pixels, both sides multiples of 64."""
+    k = (area / float(w * h)) ** 0.5
+    return max(64, int(round(w * k / 64)) * 64), max(64, int(round(h * k / 64)) * 64)
+
+
+def light_gradient(w, h, light):
+    """Init image for IC-Light: bright on the light's side, dark on the far side (grey for 'none')."""
+    if light == "none":
+        return np.full((h, w, 3), 0.5, np.float32)
+    t = np.linspace(1.0, 0.0, w if light in ("left", "right") else h, dtype=np.float32)
+    if light in ("right", "bottom"):
+        t = t[::-1]
+    g = np.broadcast_to(t[None, :] if light in ("left", "right") else t[:, None], (h, w))
+    return np.repeat(g[..., None], 3, axis=2).astype(np.float32)
+
+
+def graph_iclight(image, light_image, prompt, seed, width, height, steps=25, cfg=2.0, denoise=0.9,
+                  depth_mix=0.5, negative="lowres, bad anatomy, bad hands, cropped, worst quality"):
+    """IC-Light v1 foreground-conditioned relight, after kijai's ComfyUI-IC-Light example: the source
+    is the foreground latent, the light direction is an init latent (a gradient multiplied by the
+    Depth Anything V2 Small depth so near surfaces catch more light) sampled at denoise 0.9.
+    light_image None = no direction: start from IC-Light's empty latent at denoise 1."""
+    sc = {"upscale_method": "lanczos", "width": int(width), "height": int(height), "crop": "disabled"}
+    g = {
+        "img": {"class_type": "LoadImage", "inputs": {"image": image}},
+        "rs": {"class_type": "ImageScale", "inputs": {"image": ["img", 0], **sc}},
+        "ckpt": {"class_type": "CheckpointLoaderSimple", "inputs": {"ckpt_name": SD15}},
+        "ic": {"class_type": "LoadAndApplyICLightUnet", "inputs": {"model": ["ckpt", 0], "model_path": ICLIGHT}},
+        "pos0": {"class_type": "CLIPTextEncode", "inputs": {"clip": ["ckpt", 1], "text": prompt}},
+        "neg0": {"class_type": "CLIPTextEncode", "inputs": {"clip": ["ckpt", 1], "text": negative}},
+        "fg": {"class_type": "VAEEncode", "inputs": {"pixels": ["rs", 0], "vae": ["ckpt", 2]}},
+        "icc": {"class_type": "ICLightConditioning",
+                "inputs": {"positive": ["pos0", 0], "negative": ["neg0", 0], "vae": ["ckpt", 2],
+                           "foreground": ["fg", 0], "multiplier": 0.18215}},
+        "dec": {"class_type": "VAEDecode", "inputs": {"samples": ["ks", 0], "vae": ["ckpt", 2]}},
+        "out": {"class_type": "PreviewImage", "inputs": {"images": ["dec", 0]}},
+    }
+    ks = {"model": ["ic", 0], "positive": ["icc", 0], "negative": ["icc", 1], "seed": int(seed),
+          "steps": int(steps), "cfg": float(cfg), "sampler_name": "dpmpp_2m", "scheduler": "karras"}
+    if light_image is None:
+        ks.update(latent_image=["icc", 2], denoise=1.0)
+    else:
+        g.update({
+            "limg": {"class_type": "LoadImage", "inputs": {"image": light_image}},
+            "lrs": {"class_type": "ImageScale", "inputs": {"image": ["limg", 0], **sc}},
+            "depth": {"class_type": "DepthAnythingV2Preprocessor",
+                      "inputs": {"image": ["rs", 0], "ckpt_name": DAV2_SMALL,
+                                 "resolution": max(64, min(int(width), int(height)) // 64 * 64)}},
+            "drs": {"class_type": "ImageScale", "inputs": {"image": ["depth", 0], **sc}},
+            "lit": {"class_type": "ImageBlend", "inputs": {"image1": ["lrs", 0], "image2": ["drs", 0],
+                                                           "blend_factor": float(depth_mix),
+                                                           "blend_mode": "multiply"}},
+            "init": {"class_type": "VAEEncode", "inputs": {"pixels": ["lit", 0], "vae": ["ckpt", 2]}},
+        })
+        ks.update(latent_image=["init", 0], denoise=float(denoise))
+    g["ks"] = {"class_type": "KSampler", "inputs": ks}
+    return g
+
+
 # ---------------------------------------------------------------- routes
 def _tag():
     return uuid.uuid4().hex[:10]
@@ -321,3 +389,29 @@ def qwen_edit_fill(rgb, hole, prompt, seed):
         res = np.asarray(im, np.float32) / 255.0
     return res, {"model": QWEN_EDIT, "lora": QWEN_LORA, "seed": int(seed), "server": url(),
                  "seconds": round(secs, 1), "queued_ahead": ahead}
+
+
+def iclight_relight(rgb, prompt, light, seed):
+    """Relight by prompt and direction. Returns the model image resized back to the source size
+    (Lanczos). IC-Light repaints the whole frame at SD1.5 size, so detail changes: the caller
+    flags it. A busy queue is refused, not waited on (PHW_COMFY_MAX_AHEAD, default 0)."""
+    if light not in LIGHTS:
+        raise Unavailable(f"unknown light direction {light!r} (one of {', '.join(LIGHTS)})")
+    check(["LoadAndApplyICLightUnet", "ICLightConditioning", "DepthAnythingV2Preprocessor", "CheckpointLoaderSimple",
+           "ImageBlend", "ImageScale"],
+          {("CheckpointLoaderSimple", "ckpt_name"): SD15, ("LoadAndApplyICLightUnet", "model_path"): ICLIGHT,
+           ("DepthAnythingV2Preprocessor", "ckpt_name"): DAV2_SMALL})
+    h, w = rgb.shape[:2]
+    gw, gh = relight_size(w, h)
+    t = _tag()
+    name = upload(png_bytes(rgb), f"phw_{t}.png")
+    lname = None if light == "none" else upload(png_bytes(light_gradient(gw, gh, light)), f"phw_{t}_light.png")
+    max_ahead = int(os.environ.get("PHW_COMFY_MAX_AHEAD", 0))
+    outs, ahead, secs = run_graph(graph_iclight(name, lname, prompt, seed, gw, gh), max_ahead=max_ahead)
+    res = fetch_first(outs)
+    if res.shape[:2] != (h, w):
+        im = Image.fromarray(np.round(np.clip(res, 0, 1) * 255).astype(np.uint8)).resize((w, h), Image.LANCZOS)
+        res = np.asarray(im, np.float32) / 255.0
+    return res, {"model": f"{ICLIGHT} on {SD15}", "depth": DAV2_SMALL if light != "none" else None,
+                 "seed": int(seed), "server": url(), "seconds": round(secs, 1), "queued_ahead": ahead,
+                 "work_size": [gw, gh]}
