@@ -6,6 +6,11 @@ Entry shape: `### C-YYYYMMDD-n · date · one-line summary`, then `because:`, `f
 
 ## Unreleased
 
+### C-20261118-7 · 2026-11-18 · 0.11.0: `grade`, `detail`, `distort`, `pixelate` commands and a module-shadowing guard
+because: the gap note's build-next list (ai-docs/notes/coverage-gaps-2026-11-17.md), and session 24's trap (a module named like a core function was silently replaced by it).
+files: scripts/phw/grading.py, scripts/phw/__init__.py, tests/test_phw10.py, skills/photowright/SKILL.md, scripts/phw/core.py, .claude-plugin/plugin.json.
+Fourteen rung 1 rows (Brightness/Contrast, Color Balance, Photo Filter, Selective Color, Desaturate, Dehaze, Clarity, Smart Sharpen, Frequency separation, Pinch, Twirl, Polar, Skew, Mosaic), NumPy only, each with a numeric proof; ModuleShadowing test fails if a module in scripts/phw shares a name with a public core attribute.
+
 ### C-20261118-6 · 2026-11-18 · 0.10.0: `tone`, `effect` and `canvas` commands for the next rung 1 gaps
 because: the coverage gap note's build-next list (ai-docs/notes/coverage-gaps-2026-11-17.md): Auto Tone/Contrast/Color, Vibrance, Shadows/Highlights, Match Color, Add Noise, Emboss, Find Edges, Canvas Size, Trim.
 files: scripts/phw/tonal.py, scripts/phw/__init__.py, tests/test_phw9.py, skills/photowright/SKILL.md, scripts/phw/core.py, .claude-plugin/plugin.json.
