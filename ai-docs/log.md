@@ -95,3 +95,5 @@
 - 2026-11-18 session 37: 0.22.0 from the Inkscape manual notes: trace --speckle/--blur/--stack/--no-background/--scans N, SVG arcs as exact cubics, export --units mm viewBox in mm, clip-path noted. Skipped 12 (clips boolean, text outlines: no rung 1 boolean). tests/test_phw21.py.
 - 2026-11-18 session 37: PHW_RUNG_MAX=1 full suite had 8 failures on origin/main too: tests/test_phw20.py deleted PHW_RUNG_MAX after its refusal test (later tests ran at rung 2) and its PDF/EPS/video tests did not skip at rung 1. Fixed in 0.22.0.
 - 2026-11-18: unattended chain started via chain_loop.py (max 80 sessions, 80 h, 90 min/session); output in ai-docs/chain-run.log, costs in ai-docs/chain-ledger.json.
+
+2026-11-18 (session 39): 8199 idle: first live relight run passed (13.5 s cold, 4.1 s warm; IC-Light repaints detail, PSNR 15.5 dB vs source) — ai-docs/notes/bakeoff/relight-live-2026-11-18.md. Follow-up idea: `relight --keep-detail` (high frequencies from the source). Layers (layerdiffuse) wiring still open.
