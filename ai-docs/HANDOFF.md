@@ -1,5 +1,7 @@
 # HANDOFF: photowright
 
+2026-11-18 (session 52): nothing changed since session 51 (no new commits, models/moebius/pretrained still empty, no answers). Chain stopped at once. Waits on Mark: Moebius + PixelHacker weights pre-downloaded by hand, or a separate test ComfyUI instance. Empty leftover dirs ../photowright-s26, -s40, -stepbc hold no work.
+
 2026-11-18 (session 51): Moebius vs lama NOT run: the first MoebiusInpaint prompt ((download) pretrained) crashed the shared ComfyUI on 8199 silently (empty models/moebius/pretrained left; a supervisor restarted it). Not retried. Waits on Mark: pre-download hustvl/Moebius + PixelHacker weights by hand or allow a separate test ComfyUI instance; details ai-docs/notes/bakeoff/moebius-2026-11-18.md. lama stays default. Nothing agent-only is open; the chain should stop.
 
 2026-11-18 (session 50): centreline bake-off RUN: own `trace --kind centreline` matched or beat lineart-trace 0.2.0 on vcheck overlap in all 4 drawings (spiral/sketch/grid/noisy scan; table in ai-docs/notes/bakeoff/lineart-trace-2026-11-18.md); own tracer kept, lineart-trace not wired. Its `<rect width="100%">` crashed our SVG reader: fixed in v0.25.2 (PR #64, released, wiki version pages updated). 8199 was busy (flux3 klein job) all session, so ComfyUI was NOT restarted and Moebius vs lama is still open. Open, agent-only: when /queue on 8199 is empty, restart ComfyUI, check /object_info/MoebiusModelLoader, run Moebius vs lama (seam ratio, as in notes/bakeoff/model-routes-2026-11-18.md). Nothing waits on Mark.
