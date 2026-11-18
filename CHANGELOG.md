@@ -6,6 +6,11 @@ Entry shape: `### C-YYYYMMDD-n · date · one-line summary`, then `because:`, `f
 
 ## Unreleased
 
+### C-20261118-16 · 2026-11-18 · 0.20.0: `camraw`, HEIC/JXL/camera raw read, `inspect --c2pa-verify`
+because: HANDOFF session 32 named the remaining rung 2 rows next (8199 busy, so model-route checks waited again).
+files: scripts/phw/rawio.py, scripts/phw/core.py (LOAD_HOOKS, inspect flag), scripts/phw/__init__.py, tests/test_phw19.py, skills/photowright/SKILL.md, .claude-plugin/plugin.json, ai-docs/notes/coverage-gaps-2026-11-17.md
+`camraw` is the Camera Raw Basic panel as one recipe of the plugin's own ops in Camera Raw's order. Loading `.heic/.heif/.jxl` registers pillow-heif or pillow-jxl-plugin when present and otherwise refuses with the pip line; camera raw files (`.dng .cr2 .cr3 .nef .arw .raf .orf .rw2` ...) decode through rawpy to 16-bit sRGB. `inspect --c2pa-verify` hands the file to c2patool when it is on PATH.
+
 ### C-20261118-15 · 2026-11-18 · 0.19.0: `autoalign --model` rotation/scale/perspective, `hdrmerge --response recover`, layered TIFF, C2PA detection
 because: HANDOFF session 31 named the two partial rows (Auto-Align rotation/perspective, HDR camera response) as next, then the rung 2 rows; layered TIFF and Content Credentials detection turned out doable in rung 1.
 files: scripts/phw/hdr.py, scripts/phw/layered.py, scripts/phw/core.py, tests/test_phw18.py, tests/test_phw2.py, skills/photowright/SKILL.md, .claude-plugin/plugin.json, ai-docs/notes/coverage-gaps-2026-11-17.md

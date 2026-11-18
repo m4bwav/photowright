@@ -41,12 +41,13 @@ try:
 except Exception:  # pragma: no cover - Pillow built without LittleCMS
     ImageCms = None
 
-VERSION = "0.19.0"
+VERSION = "0.20.0"
 ROOT = Path(__file__).resolve().parent.parent.parent
 
 # Hooks filled by the other modules of the package (masks, compose, layered).
 EXTRA_COMMANDS = []   # callables(sub) adding subparsers
 RUN_KINDS = {}        # recipe "kind" -> fn(a, recipe_path, recipe_dict)
+LOAD_HOOKS = []      # callables(path, used) -> Img or None
 DOCTOR_GROUPS = []    # callables() -> {group: (rung, tool)}
 
 
@@ -242,6 +243,10 @@ def _exif_bytes(ex):
 def load(path, used=None):
     """Open, apply EXIF orientation, read ICC/EXIF/XMP, return Img (float32 straight alpha)."""
     path = Path(path)
+    for hook in LOAD_HOOKS:   # rung 2 formats (rawio): return an Img, or register an opener and return None
+        r = hook(path, used)
+        if r is not None:
+            return r
     notes = []
     with Image.open(path) as im:  # read-only open
         fmt = im.format
@@ -1344,7 +1349,8 @@ def build_parser():
     p.set_defaults(fn=cmd_explain)
     p = sub.add_parser("inspect", help="size, mode, profile, bit depth, alpha, orientation, metadata, layers")
     p.add_argument("input")
-    p.set_defaults(fn=cmd_inspect)
+    p.add_argument("--c2pa-verify", action="store_true", help="also validate Content Credentials with c2patool (rung 2)")
+    p.set_defaults(fn=lambda a: cmd_inspect(a))
     p = edit("convert", cmd_convert, "format, bit depth, profile and metadata")
     p.add_argument("--format", help="png, jpg, webp, tif ... (default: from -o or source)")
     p.add_argument("--profile", choices=("keep", "strip", "srgb"), default="keep")
