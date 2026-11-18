@@ -30,7 +30,7 @@ The work ends when every group above passes its evals with the top rung turned o
 
 ## 1. Load state
 
-1. Read `ai-docs/HANDOFF.md` and the end of `ai-docs/log.md`. Compare HANDOFF.md's age with run logs and commits, and trust the newer evidence.
+1. Read `ai-docs/HANDOFF.md` and the end of `ai-docs/log.md`, trimmed at the source: `git show origin/main:ai-docs/HANDOFF.md | head -12`, its `## Waiting on Mark` and `## What waits on Mark` sections, and `git show origin/main:ai-docs/log.md | tail -8` (a full dump of prompt, HANDOFF and log cost 11-13k tokens in each of eight 2026-11-18 sessions). Compare HANDOFF.md's age with run logs and commits, and trust the newer evidence.
 2. If HANDOFF.md says the build has not started, also read, before designing anything:
    - the `evergreen-new` skill and one sibling's layout (`Ai/mapwright` or `Ai/fractalwright`) for the house shape: hub SKILL.md, one stdlib-first script, references loaded on demand, LEARNINGS, evals with a baseline, `harvest.json`, README banner, SECURITY.md, wiki;
    - the "Image editing and vectorizing plugin" entry in `Ai/plugin-backlog/new-plugins.md`;
