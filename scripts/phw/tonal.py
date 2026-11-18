@@ -267,6 +267,9 @@ def hexcol(s):
 
 
 def cmd_canvas(a):
+    if getattr(a, "reveal_all", False):
+        from .kernels import cmd_reveal_all
+        return cmd_reveal_all(a)
     steps = []
     if a.trim:
         steps.append({"op": "canvas.trim", "params": {"by": a.by, "tolerance": a.tolerance}})
@@ -306,6 +309,8 @@ def add_commands(sub, edit):
     p = edit("canvas", cmd_canvas, "canvas size around an anchor, trim borders (rung 1)")
     p.add_argument("--size", help="W,H in px (or dW,dH with --relative); smaller crops")
     p.add_argument("--relative", action="store_true")
+    p.add_argument("--reveal-all", action="store_true", help="layered doc (.psd/.ora/layers .json): grow the "
+                   "canvas to every layer's bounds")
     p.add_argument("--anchor", choices=tuple(ANCHORS), default="c")
     p.add_argument("--fill", help="'#rrggbb'; default transparent")
     p.add_argument("--trim", action="store_true", help="cut transparent or corner-coloured border (before --size)")
