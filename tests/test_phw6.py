@@ -169,6 +169,32 @@ class Szeliski(unittest.TestCase):
         self.assertEqual(r["rung"], 1)
         self.assertLess(np.abs(read(r["output"]) - read(save(bg, self.d / "bg.png"))).max(), 1 / 255 + 1e-6)
 
+    def test_stack_recipe_replays_after_folder_move(self):
+        import shutil
+        rng = np.random.default_rng(5)
+        bg = rng.random((16, 24, 3)).astype(np.float32)
+        job = self.d / "job"
+        job.mkdir()
+        files = []
+        for k in range(3):
+            f = bg.copy()
+            f[4:10, k * 8:k * 8 + 5] = (0, 1, 0)
+            files.append(save(f, job / f"f{k}.png"))
+        rp = job / "recipe.json"
+        first = run("stack", *files, "--mode", "median", "-o", self.d / "plate.png", "--recipe", rp)
+        prm = json.loads(rp.read_text())["steps"][0]["params"]
+        self.assertEqual(prm["others"], ["f1.png", "f2.png"])  # relative, not absolute
+        self.assertEqual(len(prm["others_sha256"]), 2)
+        moved = self.d / "moved"
+        shutil.copytree(job, moved)
+        shutil.rmtree(job)
+        r = run("run", moved / "recipe.json", "-o", self.d / "replay.png")
+        self.assertTrue(np.array_equal(read(r["output"]), read(first["output"])))
+        self.assertFalse(any("other inputs" in n for n in r["notes"]))
+        save(np.zeros_like(bg), moved / "f2.png")
+        r2 = run("run", moved / "recipe.json", "-o", self.d / "replay2.png")
+        self.assertTrue(any("f2.png" in n for n in r2["notes"]))
+
     def test_upscale_records_invented_detail(self):
         src = save(np.random.default_rng(4).random((8, 8, 3)), self.d / "u.png")
         rp = self.d / "rec.json"

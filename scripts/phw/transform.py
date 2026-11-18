@@ -385,6 +385,11 @@ def one_step(a, tag, p):
     out = out_for(a.input, a.output, tag)
     save(res, out, getattr(a, "bits", None), used)
     if a.recipe:
+        if "others" in p:   # store the other inputs like the source: relative to the recipe, with sha256
+            rp = dict(p)
+            rp["others"] = [core.rel_to(f, Path(a.recipe).parent) for f in p["others"]]
+            rp["others_sha256"] = [core.sha256(f) for f in p["others"]]
+            step = {"op": tag, "params": rp}
         core.record(a.recipe, a.input, [step], out, used, time.time() - t0)
     return {"command": tag, "input": str(a.input), "output": str(out), "rung": used.rung(), "tool": used.tool(),
             "used": used.items, "steps": [step], "notes": res.notes,
