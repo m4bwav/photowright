@@ -1,5 +1,7 @@
 # HANDOFF: photowright
 
+2026-11-18 (session 53): Moebius vs lama RUN on 8199 with the hand-downloaded weights (no crash): lama is nearer seam ratio 1.0 in all 3 cases and ~3x faster, so Moebius is DROPPED (not wired), lama stays the rung 3 fill default. Table: ai-docs/notes/bakeoff/moebius-2026-11-18.md. Nothing agent-only is open and nothing waits on Mark; the chain should stop until a new goal arrives.
+
 2026-11-18 (main session, Mark: 'don't ask me'): Moebius weights PRE-DOWNLOADED by hand: models/moebius/pretrained/diffusion_pytorch_model.bin (864 MB) and models/moebius/vae/{config.json,diffusion_pytorch_model.bin} (160 MB) (D:/ComfyUI/models resolves to F:/ComfyUI/models). Retry Moebius vs lama once on 8199 when /queue is empty. If it crashes again with weights present, the crash is the model, not the download: record it, keep lama, and drop Moebius (do not ask Mark).
 
 2026-11-18 (session 52): nothing changed since session 51 (no new commits, models/moebius/pretrained still empty, no answers). Chain stopped at once. Waits on Mark: Moebius + PixelHacker weights pre-downloaded by hand, or a separate test ComfyUI instance. Empty leftover dirs ../photowright-s26, -s40, -stepbc hold no work.

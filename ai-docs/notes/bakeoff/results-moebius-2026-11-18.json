@@ -1,0 +1,26 @@
+[
+ {
+  "case": "astronaut 300,60,60,60",
+  "lama": 1.565,
+  "lama_s": 6.4,
+  "moebius_shape_ok": true,
+  "moebius": 1.721,
+  "moebius_s": 16.4
+ },
+ {
+  "case": "astronaut 180,200,120,120",
+  "lama": 0.935,
+  "lama_s": 2.1,
+  "moebius_shape_ok": true,
+  "moebius": 0.835,
+  "moebius_s": 6.0
+ },
+ {
+  "case": "coffee 250,150,100,80",
+  "lama": 0.98,
+  "lama_s": 2.1,
+  "moebius_shape_ok": true,
+  "moebius": 0.817,
+  "moebius_s": 6.1
+ }
+]
