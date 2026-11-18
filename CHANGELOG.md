@@ -6,6 +6,11 @@ Entry shape: `### C-YYYYMMDD-n · date · one-line summary`, then `because:`, `f
 
 ## Unreleased
 
+### C-20261118-21 · 2026-11-18 · 0.25.0: decompose an image into RGBA layers (Qwen-Image-Layered, rung 3)
+because: references/comfyui-nodes.md listed Qwen-Image-Layered (core, Apache-2.0) as installed on 8199 but not wired.
+files: scripts/phw/comfy.py, scripts/phw/layered.py, scripts/phw/core.py, tests/test_phw22.py, skills/photowright/SKILL.md, references/comfyui-nodes.md, .claude-plugin/plugin.json
+New `decompose IMG --layers N -o out.psd|out.ora|folder [--png DIR] [--prompt "caption"] [--seed N] [--steps 20]`: core Qwen-Image-Layered after the blueprint "Image to Layers (Qwen-Image-Layered)" at about 640x640 (multiples of 16), layers resized back with Lanczos, bottom first; reports alpha coverage per layer and the recomposite PSNR. Refuses a busy queue; falls back (and `--method colour` runs) to an own k-means colour split that flattens back exactly. Live on 8199: 3 layers in 177 s, recomposite 36.3 dB (ai-docs/notes/bakeoff/layered-live-2026-11-18.md).
+
 ### C-20261118-20 · 2026-11-18 · 0.24.0: relight --keep-detail (source detail over IC-Light's lighting)
 because: the first live relight run (ai-docs/notes/bakeoff/relight-live-2026-11-18.md) showed IC-Light repaints the whole frame (high-pass correlation with the source 0.46; the car and tail emblem vanished).
 files: scripts/phw/transform.py, tests/test_comfy.py, skills/photowright/SKILL.md, scripts/phw/core.py, .claude-plugin/plugin.json

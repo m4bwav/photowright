@@ -1,6 +1,8 @@
 """Layered files: OpenRaster read/write and PSD write (own code, rung 1); PSD read with
 psd-tools when installed (rung 2) or phw's own minimal reader (8-bit RGB raster layers,
-masks, groups: enough for files phw wrote and plain Photoshop files). Commands: open, save.
+masks, groups: enough for files phw wrote and plain Photoshop files). Commands: open, save,
+decompose (an image split into RGBA layers: Qwen-Image-Layered via ComfyUI at rung 3, own
+k-means colour split at rung 1).
 
 PSD layout from Adobe's File Formats Specification (Nov 2019); notes in
 references/layered-formats.md. What is written: 8-bit RGB, raster layers trimmed to their
@@ -721,7 +723,111 @@ def cmd_save(a):
             "rung": used.rung(), "tool": used.tool(), "used": used.items, "notes": doc.notes}
 
 
+# ---------------------------------------------------------------- decompose
+def kmeans_layers(rgb, k, seed=0, iters=12):
+    """Rung 1: k-means in RGB (sampled pixels, luminance-quantile start) -> k hard-alpha layers,
+    biggest cluster first (bottom). The layers tile the frame, so they flatten back exactly."""
+    h, w = rgb.shape[:2]
+    flat = rgb.reshape(-1, 3).astype(np.float32)
+    rng = np.random.default_rng(seed)
+    sample = flat[rng.choice(len(flat), min(len(flat), 20000), replace=False)]
+    lum = sample @ np.float32([0.299, 0.587, 0.114])
+    order = np.argsort(lum)
+    cent = sample[order[np.linspace(0, len(order) - 1, k).astype(int)]].copy()
+    for _ in range(iters):
+        lab = ((sample[:, None, :] - cent[None]) ** 2).sum(2).argmin(1)
+        for j in range(k):
+            if (lab == j).any():
+                cent[j] = sample[lab == j].mean(0)
+    lab = np.empty(len(flat), np.int64)
+    for i in range(0, len(flat), 1 << 18):
+        lab[i:i + (1 << 18)] = ((flat[i:i + (1 << 18), None, :] - cent[None]) ** 2).sum(2).argmin(1)
+    counts = np.bincount(lab, minlength=k)
+    out = []
+    for j in np.argsort(-counts):
+        if counts[j] == 0:
+            continue
+        a = (lab == j).reshape(h, w, 1).astype(np.float32)
+        out.append(np.concatenate([rgb * a, a], axis=2).astype(np.float32))
+    return out
+
+
+def psnr(a, b):
+    mse = float(((np.asarray(a, np.float64) - np.asarray(b, np.float64)) ** 2).mean())
+    return float("inf") if mse == 0 else round(10 * np.log10(1.0 / mse), 2)
+
+
+def decompose(rgb, p, used, notes):
+    """Return a Doc of RGBA layers (bottom first) for an RGB float image."""
+    from . import comfy
+    h, w = rgb.shape[:2]
+    layers, names = None, "layer"
+    if p["method"] == "qwen-layered":
+        try:
+            layers, info = comfy.qwen_layered(rgb, p["layers"], p["seed"], p.get("prompt", ""), p.get("steps", 20))
+            used.add("decompose", 3, f"ComfyUI Qwen-Image-Layered ({info['model']})")
+            p.update(model=info["model"], seed=info["seed"], steps=info["steps"], work_size=info["work_size"],
+                     invented_detail=True)
+            notes.append(f"rung 3 Qwen-Image-Layered via {info['server']}: {info['seconds']} s, "
+                         f"{info['queued_ahead']} jobs ahead, worked at {info['work_size'][0]}x{info['work_size'][1]}")
+            notes.append("the model repaints each layer (hidden areas are invented): check the flattened result "
+                         "against the source (recomposite_psnr)")
+        except comfy.Unavailable as e:
+            p["fell_back"] = str(e)
+            notes.append(f"fell back: {e}")
+    if layers is None:
+        layers = kmeans_layers(rgb, p["layers"], p["seed"])
+        names = "colour"
+        used.add("decompose", 1, "own k-means colour split")
+        p["invented_detail"] = False
+        notes.append("rung 1 split is by colour only (hard-edged, no hidden areas painted)")
+    doc = Doc(w, h, [Layer(f"{names} {i + 1}", lay) for i, lay in enumerate(layers)], notes)
+    return doc
+
+
+def cmd_decompose(a):
+    t0 = time.time()
+    used = Used()
+    img = core.load(a.input, used)
+    c = img.color()
+    rgb = (np.repeat(c, 3, axis=2) if c.shape[2] == 1 else c[..., :3]).astype(np.float32)
+    if a.layers < 1:
+        raise SystemExit("decompose: --layers must be 1 or more")
+    p = {"method": a.method, "layers": a.layers, "seed": a.seed, "prompt": a.prompt or "", "steps": a.steps}
+    notes = list(img.notes)
+    doc = decompose(rgb, p, used, notes)
+    flat = composite_doc(doc)
+    cover = [round(float((l.px[..., 3] > 0.5).mean()), 4) for l in doc.layers]
+    out = Path(a.output)
+    r = {"command": "decompose", "input": str(a.input), "params": p, "layers": len(doc.layers),
+         "alpha_coverage": cover, "recomposite_psnr": psnr(flat[..., :3] * flat[..., 3:], rgb),
+         "flattened_alpha_mean": round(float(flat[..., 3].mean()), 4)}
+    if out.suffix.lower() in WRITERS:
+        out = free_path(out)
+        WRITERS[out.suffix.lower()](doc, out, used)
+        r["output"] = str(out)
+    elif out.suffix:
+        raise SystemExit("decompose: -o must be a .psd, .ora or a folder (PNG layers + layers.json)")
+    if a.png or not out.suffix:
+        r["recipe"] = str(extract(doc, a.png or out))
+    r.update(rung=used.rung(), tool=used.tool(), used=used.items, notes=doc.notes, seconds=round(time.time() - t0, 1))
+    return r
+
+
 def add_commands(sub, edit):
+    p = sub.add_parser("decompose", help="split an image into RGBA layers: Qwen-Image-Layered via ComfyUI (rung 3), "
+                       "own k-means colour split (rung 1); writes .psd, .ora or PNG layers")
+    p.add_argument("input")
+    p.add_argument("-o", "--output", required=True, help="output .psd or .ora (never overwritten), or a folder for PNG layers")
+    p.add_argument("--layers", type=int, default=4, help="number of layers (default 4)")
+    p.add_argument("--method", choices=("qwen-layered", "colour"), default="qwen-layered")
+    p.add_argument("--model", dest="method", choices=("qwen-layered",), help="same as --method qwen-layered")
+    p.add_argument("--prompt", help="optional caption of the image for Qwen-Image-Layered")
+    p.add_argument("--steps", type=int, default=20)
+    p.add_argument("--seed", type=int, default=0)
+    p.add_argument("--png", help="also write each layer as PNG plus layers.json into this folder")
+    p.set_defaults(fn=cmd_decompose)
+
     p = sub.add_parser("open", help="read a layered file (.psd, .ora, layered .tif, layers recipe): tree, extract, GIMP check")
     p.add_argument("input")
     p.add_argument("--extract", help="folder: write each layer and mask as PNG plus layers.json")
@@ -742,5 +848,7 @@ core.DOCTOR_GROUPS.append(lambda: {
     "PSD write": (1, "own PSD writer (8-bit RGB, masks, groups)"),
     "layered TIFF read/write": (1, "own (Photoshop tag 37724)"),
     "PSD read": (2, "psd-tools") if probe("psd_tools") else (1, "own minimal PSD reader"),
+    "decompose --model qwen-layered": (3, "Qwen-Image-Layered via ComfyUI; falls back to own k-means split"),
+    "decompose --method colour": (1, "own k-means colour split"),
     "GIMP check": (2, core.gimp_console() or "GIMP 3 not found"),
 })

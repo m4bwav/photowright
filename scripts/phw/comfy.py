@@ -10,6 +10,9 @@ references/comfyui-nodes.md):
                             iclight_sd15_fc on SD1.5 v1-5-pruned-emaonly) with the light direction as an init
                             gradient shaded by Depth Anything V2 Small (controlnet_aux, vits, Apache-2.0);
                             refuses a busy queue (PHW_COMFY_MAX_AHEAD)
+  decompose --model qwen-layered  core Qwen-Image-Layered (fp8mixed, Apache-2.0) after the core blueprint
+                            "Image to Layers (Qwen-Image-Layered)": EmptyQwenImageLayeredLatentImage, ReferenceLatent,
+                            LatentCut + LatentCutToBatch, layered VAE (RGBA out); refuses a busy queue
   select --text "..."       kijai Florence2ModelLoader (Florence-2-large, MIT) caption_to_phrase_grounding boxes
                             into kijai Sam2Segmentation (sam2.1_hiera_base_plus, Apache-2.0)
 Flow: upload the image (/upload/image), POST /prompt with an API-format graph, poll /history,
@@ -45,6 +48,8 @@ QWEN_VAE = "qwen_image_vae.safetensors"
 SD15 = "v1-5-pruned-emaonly.safetensors"
 ICLIGHT = "iclight_sd15_fc.safetensors"
 DAV2_SMALL = "depth_anything_v2_vits.pth"
+QWEN_LAYERED = "qwen_image_layered_fp8mixed.safetensors"
+QWEN_LAYERED_VAE = "qwen_image_layered_vae.safetensors"
 LIGHTS = ("left", "right", "top", "bottom", "none")
 
 
@@ -151,6 +156,19 @@ def fetch_first(outputs, node="out"):
                                 "type": i.get("type", "temp")})
     im = Image.open(io.BytesIO(_req("/view?" + q, timeout=120)))
     return np.asarray(im.convert("RGB"), np.float32) / 255.0
+
+
+def fetch_all(outputs, node="out"):
+    """Every image of one output node as float RGBA arrays (alpha 1 when the PNG has none)."""
+    res = []
+    for i in outputs.get(node, {}).get("images") or []:
+        q = urllib.parse.urlencode({"filename": i["filename"], "subfolder": i.get("subfolder", ""),
+                                    "type": i.get("type", "temp")})
+        im = Image.open(io.BytesIO(_req("/view?" + q, timeout=120)))
+        res.append(np.asarray(im.convert("RGBA"), np.float32) / 255.0)
+    if not res:
+        raise Unavailable("ComfyUI returned no image")
+    return res
 
 
 # ---------------------------------------------------------------- graphs (API format)
@@ -318,6 +336,41 @@ def graph_iclight(image, light_image, prompt, seed, width, height, steps=25, cfg
     return g
 
 
+def layered_size(w, h, area=640 * 640):
+    """Qwen-Image-Layered working size: about `area` pixels (the blueprint's 640x640), sides multiples of 16."""
+    k = (area / float(w * h)) ** 0.5
+    return max(16, int(round(w * k / 16)) * 16), max(16, int(round(h * k / 16)) * 16)
+
+
+def graph_qwen_layered(image, layers, seed, prompt="", steps=20, cfg=2.5):
+    """Image to RGBA layers, after the core blueprint 'Image to Layers (Qwen-Image-Layered)': the source
+    (already at the working size) is VAE-encoded as a reference latent on both prompts, the empty layered
+    latent has layers+1 frames, frame 0 is cut away and the rest decode as a batch of RGBA layers."""
+    return {
+        "img": {"class_type": "LoadImage", "inputs": {"image": image}},
+        "size": {"class_type": "GetImageSize", "inputs": {"image": ["img", 0]}},
+        "unet": {"class_type": "UNETLoader", "inputs": {"unet_name": QWEN_LAYERED, "weight_dtype": "default"}},
+        "ms": {"class_type": "ModelSamplingAuraFlow", "inputs": {"model": ["unet", 0], "shift": 1.0}},
+        "clip": {"class_type": "CLIPLoader", "inputs": {"clip_name": QWEN_CLIP, "type": "qwen_image"}},
+        "vae": {"class_type": "VAELoader", "inputs": {"vae_name": QWEN_LAYERED_VAE}},
+        "enc": {"class_type": "VAEEncode", "inputs": {"pixels": ["img", 0], "vae": ["vae", 0]}},
+        "pos0": {"class_type": "CLIPTextEncode", "inputs": {"clip": ["clip", 0], "text": prompt}},
+        "neg0": {"class_type": "CLIPTextEncode", "inputs": {"clip": ["clip", 0], "text": ""}},
+        "pos": {"class_type": "ReferenceLatent", "inputs": {"conditioning": ["pos0", 0], "latent": ["enc", 0]}},
+        "neg": {"class_type": "ReferenceLatent", "inputs": {"conditioning": ["neg0", 0], "latent": ["enc", 0]}},
+        "lat": {"class_type": "EmptyQwenImageLayeredLatentImage",
+                "inputs": {"width": ["size", 0], "height": ["size", 1], "layers": int(layers), "batch_size": 1}},
+        "ks": {"class_type": "KSampler", "inputs": {"model": ["ms", 0], "positive": ["pos", 0], "negative": ["neg", 0],
+                                                    "latent_image": ["lat", 0], "seed": int(seed), "steps": int(steps),
+                                                    "cfg": float(cfg), "sampler_name": "euler", "scheduler": "simple",
+                                                    "denoise": 1.0}},
+        "cut": {"class_type": "LatentCut", "inputs": {"samples": ["ks", 0], "dim": "t", "index": 1, "amount": 16384}},
+        "batch": {"class_type": "LatentCutToBatch", "inputs": {"samples": ["cut", 0], "dim": "t", "slice_size": 1}},
+        "dec": {"class_type": "VAEDecode", "inputs": {"samples": ["batch", 0], "vae": ["vae", 0]}},
+        "out": {"class_type": "PreviewImage", "inputs": {"images": ["dec", 0]}},
+    }
+
+
 # ---------------------------------------------------------------- routes
 def _tag():
     return uuid.uuid4().hex[:10]
@@ -415,3 +468,28 @@ def iclight_relight(rgb, prompt, light, seed):
     return res, {"model": f"{ICLIGHT} on {SD15}", "depth": DAV2_SMALL if light != "none" else None,
                  "seed": int(seed), "server": url(), "seconds": round(secs, 1), "queued_ahead": ahead,
                  "work_size": [gw, gh]}
+
+
+def qwen_layered(rgb, layers, seed, prompt="", steps=20):
+    """Split an image into RGBA layers with Qwen-Image-Layered. Returns a list of float RGBA arrays at
+    the source size (Lanczos back from the working size), in the model's order, and an info dict.
+    A busy queue is refused, not waited on (PHW_COMFY_MAX_AHEAD, default 0)."""
+    check(["EmptyQwenImageLayeredLatentImage", "ReferenceLatent", "LatentCut", "LatentCutToBatch", "GetImageSize",
+           "ModelSamplingAuraFlow", "UNETLoader", "CLIPLoader", "VAELoader"],
+          {("UNETLoader", "unet_name"): QWEN_LAYERED, ("CLIPLoader", "clip_name"): QWEN_CLIP,
+           ("VAELoader", "vae_name"): QWEN_LAYERED_VAE})
+    h, w = rgb.shape[:2]
+    gw, gh = layered_size(w, h)
+    a8 = np.round(np.clip(rgb, 0, 1) * 255).astype(np.uint8)
+    small = np.asarray(Image.fromarray(a8, "RGB").resize((gw, gh), Image.LANCZOS), np.float32) / 255.0
+    name = upload(png_bytes(small), f"phw_{_tag()}.png")
+    max_ahead = int(os.environ.get("PHW_COMFY_MAX_AHEAD", 0))
+    outs, ahead, secs = run_graph(graph_qwen_layered(name, layers, seed, prompt, steps), max_ahead=max_ahead)
+    res = []
+    for lay in fetch_all(outs):
+        if lay.shape[:2] != (h, w):
+            im = Image.fromarray(np.round(np.clip(lay, 0, 1) * 255).astype(np.uint8), "RGBA").resize((w, h), Image.LANCZOS)
+            lay = np.asarray(im, np.float32) / 255.0
+        res.append(lay.astype(np.float32))
+    return res, {"model": QWEN_LAYERED, "vae": QWEN_LAYERED_VAE, "seed": int(seed), "steps": int(steps),
+                 "server": url(), "seconds": round(secs, 1), "queued_ahead": ahead, "work_size": [gw, gh]}

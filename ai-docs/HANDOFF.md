@@ -1,6 +1,7 @@
 # HANDOFF: photowright
 
 
+2026-11-18 (session 42): v0.25.0 `decompose` (Qwen-Image-Layered split to RGBA layers, rung 3; k-means colour split rung 1) built, live-checked (3 layers, 177 s, recomposite 36.3 dB) and released. Next: layerdiffuse transparent generation is comfyui-gen's job, so skip it; open items are a decompose run on a real photo and warm-run timing, live qwen-edit measure. Waiting on Mark: wiki first page (https://github.com/m4bwav/photowright/wiki/_new), everscout beat outline + 4 metrics.
 2026-11-18 (session 41): v0.24.0 released (PR #48, https://github.com/m4bwav/photowright/releases/tag/v0.24.0). Next: layers (layerdiffuse / Qwen-Image-Layered) wiring, rung 3, needs 8199 idle. Waiting on Mark: wiki first page (https://github.com/m4bwav/photowright/wiki/_new), everscout beat outline + 4 metrics.
 2026-11-18 (session 40): v0.24.0 `relight --keep-detail` built and live-checked (high-pass corr 0.965 vs 0.455). Next: layers (layerdiffuse / Qwen-Image-Layered) wiring, rung 3. Still waiting on Mark: wiki first page (https://github.com/m4bwav/photowright/wiki/_new), everscout beat outline + 4 metrics.
 
