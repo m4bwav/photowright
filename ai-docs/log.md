@@ -106,3 +106,5 @@
 - 2026-11-18 session 43: GitHub wiki published (9 pages, examples run on the v0.25.0 tag; ai-docs/notes/2026-11-18-github-wiki.md). Everscout image-editing beat: outline approved and all 4 metrics approved by the agent at Mark's instruction (indie-ai-scout PR #70, merged; metrics promote themselves at 3 collected points). Fixed CHANGELOG (0.9.0-0.25.0 had sat under Unreleased) and README install (doctor path only works from a clone).
 
 - 2026-11-18 session 44: decompose on a real image gave layers [1,1,1,0] (opaque layer hides the rest, last empty), 32.6 dB, 212/209 s cold/warm; v0.25.1 adds split_warnings (PR #53, tag v0.25.1); wiki Versions/Home/Footer bumped; plugin-backlog line says v0.25.1.
+
+- 2026-11-18 session 45: decompose on a public-domain NPS photo (bison and Roosevelt Arch, 864x576, seed 7): no prompt [1,.057,.023,.054] 27.9 dB 215 s; caption [1,.063,.018,.053] 28.2 dB 224 s. Bison split cleanly both ways, arch never split; caption does not help (notes/bakeoff/decompose-photo-2026-11-18.md). SKILL.md decompose line says so.
