@@ -238,25 +238,49 @@ def safe_fit(L, tol, corner):
     return {"start": tuple(Lm[0]), "segs": [("L", tuple(p)) for p in Lm[1:]], "closed": True}
 
 
-def trace_region(img, kind, used, tol=0.6, speckle=4.0, corner=50.0):
+def brightness_bands(a, scans):
+    """Inkscape's brightness steps without its off-by-one: exactly `scans` thresholds evenly spaced in
+    (0, 256), so exactly `scans` layers; band 0 is the darkest, band `scans` (the brightest) is the page."""
+    g = (a[..., 0] * 0.299 + a[..., 1] * 0.587 + a[..., 2] * 0.114)
+    T = [round(256 * (i + 1) / (scans + 1)) for i in range(scans)]
+    lab = np.digitize(g, T)
+    C = np.array([[int(round(g[lab == j].mean())) if (lab == j).any() else 255] * 3 for j in range(scans + 1)])
+    return lab, C, T
+
+
+def trace_region(img, kind, used, tol=0.6, speckle=4.0, corner=50.0, stack=False, background=True, scans=None):
     """Own region tracer with holes: labels, lattice loops (outer + hole), even-odd fill, fitted curves.
     The most common colour becomes a full-canvas rectangle underneath (stacked), so fitted seams never
-    show the empty page."""
+    show the empty page; background=False drops it (Inkscape's remove background).
+    stack=True: each layer also covers every layer drawn above it (no seam gaps, Inkscape's stack scans);
+    stack=False: layers do not overlap. scans=N: N brightness steps instead of colours (always stacked).
+    Closed loops under `speckle` px^2 are dropped (Inkscape's suppress speckles)."""
     a = V.source_rgb(img)
     h, w = a.shape[:2]
-    lab, C, method = palette_labels(a, kind)
-    if kind == "photo":
-        lab = mode_filter(lab, len(C))
-    cnt = np.bincount(lab.ravel(), minlength=len(C))
-    order = [int(j) for j in np.argsort(-cnt) if cnt[j]]
+    info_extra = {}
+    if scans:
+        lab, C, T = brightness_bands(a, int(scans))
+        method = f"{scans} brightness steps"
+        order = list(range(int(scans), -1, -1))           # brightest (page) first, darkest on top
+        stack = True
+        info_extra = {"thresholds": T, "scans": int(scans)}
+    else:
+        lab, C, method = palette_labels(a, kind)
+        if kind == "photo":
+            lab = mode_filter(lab, len(C))
+        cnt = np.bincount(lab.ravel(), minlength=len(C))
+        order = [int(j) for j in np.argsort(-cnt) if cnt[j]]
     bg = order[0]
-    shapes = [{"fill": tuple(C[bg]), "stroke": None, "width": 0, "rule": "nonzero",
-               "subs": [{"start": (0.0, 0.0), "segs": [("L", (w, 0.0)), ("L", (w, h)), ("L", (0.0, h))],
-                         "closed": True}]}]
+    shapes = []
+    if background:
+        shapes.append({"fill": tuple(C[bg]), "stroke": None, "width": 0, "rule": "nonzero",
+                       "subs": [{"start": (0.0, 0.0), "segs": [("L", (w, 0.0)), ("L", (w, h)), ("L", (0.0, h))],
+                                 "closed": True}]})
     holes = outers = dropped = 0
-    for j in order[1:]:
+    for pos, j in enumerate(order[1:], 1):
         subs = []
-        for L in lattice_loops(lab == j):
+        mask = np.isin(lab, order[pos:]) if stack else lab == j
+        for L in lattice_loops(mask):
             ar = V.signed_area(L)
             if abs(ar) < speckle:
                 dropped += 1
@@ -274,7 +298,8 @@ def trace_region(img, kind, used, tol=0.6, speckle=4.0, corner=50.0):
             shapes.append({"fill": tuple(C[j]), "stroke": None, "width": 0, "rule": "evenodd", "subs": subs})
     used.add("trace", 1, "own region tracer (lattice loops with holes, even-odd, cubic fit)")
     return ({"width": w, "height": h, "shapes": shapes, "notes": [f"labels: {method}, {len(order)} colours"]},
-            {"outer_loops": outers, "hole_loops": holes, "speckles_dropped": dropped, "labels": method})
+            dict({"outer_loops": outers, "hole_loops": holes, "speckles_dropped": dropped, "labels": method,
+                  "stacked": bool(stack), "background": bool(background)}, **info_extra))
 
 
 # ---------------------------------------------------------------- centreline
@@ -500,10 +525,18 @@ def run_inkscape_trace(img, scans=8):
 
 
 # ---------------------------------------------------------------- command
-def trace(img, kind, backend="auto", tol=None, vt_opts=None):
-    """Trace a PIL image. Returns (doc, info, used)."""
+def trace(img, kind, backend="auto", tol=None, vt_opts=None, speckle=None, blur=0.0, stack=False,
+          background=True, scans=None):
+    """Trace a PIL image. Returns (doc, info, used). speckle, stack, background and scans are own region
+    tracer options (they force it); blur pre-blurs the input (halftone screens) for every backend."""
     used = core.Used()
     info, notes = {}, []
+    if blur:
+        from PIL import ImageFilter
+        img = img.convert("RGB").filter(ImageFilter.GaussianBlur(blur))
+        used.add("pre-blur", 1, f"Pillow Gaussian blur r={blur}")
+    if kind in ("logo", "icon", "line", "photo") and (speckle is not None or stack or not background or scans):
+        backend = "own"
     if kind == "pixel":
         doc, info = trace_pixel(img, used)
     elif kind == "centreline":
@@ -532,7 +565,9 @@ def trace(img, kind, backend="auto", tol=None, vt_opts=None):
             elif backend == "vtracer":
                 notes.append("vtracer not installed (pip install vtracer) or hidden at rung 1; own region tracer used")
         if doc is None:
-            doc, info = trace_region(img, kind, used, tol or 0.6, speckle=2.0 if kind == "photo" else 4.0)
+            sp = speckle if speckle is not None else (2.0 if kind == "photo" else 4.0)
+            doc, info = trace_region(img, kind, used, tol or 0.6, speckle=sp, stack=stack, background=background,
+                                     scans=scans)
     doc["notes"] = notes + doc.get("notes", [])
     return doc, info, used
 
@@ -542,7 +577,8 @@ def cmd_trace(a):
     img = Image.open(a.input)
     img.load()
     opts = json.loads(a.vt_opts) if a.vt_opts else None
-    doc, info, used = trace(img, a.kind, a.backend, a.tolerance, opts)
+    doc, info, used = trace(img, a.kind, a.backend, a.tolerance, opts, speckle=a.speckle, blur=a.blur or 0.0,
+                            stack=a.stack, background=not a.no_background, scans=a.scans)
     out = V.write_out(core.out_for(a.input, a.output, f"trace-{a.kind}", ".svg"), V.to_svg(doc))
     r = {"command": "trace", "input": str(a.input), "output": str(out), "kind": a.kind, "rung": used.rung(),
          "tool": used.tool(), "used": used.items, "info": info, "seconds": round(time.time() - t0, 3)}
@@ -564,6 +600,12 @@ def add_commands(sub, edit):
                    help="logo/icon/line/photo: auto = VTracer in a subprocess, else the own region tracer")
     p.add_argument("--tolerance", type=float, help="curve fit tolerance in px (own tracers)")
     p.add_argument("--vt-opts", help="JSON options passed to vtracer (run in its own process)")
+    p.add_argument("--speckle", type=float, help="own tracer: drop closed loops under this area in px^2 "
+                   "(default 4, photo 2)")
+    p.add_argument("--blur", type=float, help="Gaussian pre-blur radius in px (halftone or screened prints)")
+    p.add_argument("--stack", action="store_true", help="own tracer: each colour also covers the ones above it")
+    p.add_argument("--no-background", action="store_true", help="own tracer: leave out the bottom (page) layer")
+    p.add_argument("--scans", type=int, help="own tracer: exactly N brightness steps (grey levels) instead of colours")
     p.add_argument("--no-check", action="store_true", help="skip the render-back check")
     p.set_defaults(fn=cmd_trace)
 

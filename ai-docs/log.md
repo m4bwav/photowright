@@ -90,3 +90,6 @@
 - 2026-11-18 (session 35): 8199 idle: SeedVR2/lama/qwen-edit measured (notes/bakeoff/model-routes-2026-11-18.md). Evals 15/15 on 0.21.0; worth heavy baseline 0/3 actions vs 3/3: final KEEP. Inkscape manual: notes/inkscape-manual.md (site is HTTP only, WebFetch fails, curl works). Release question on askwright set photowright-release-2026-11-18.
 
 - 2026-11-18 session 36: public + v0.21.0 released + installed (Mark's yes). Reddit RSS 404; fetchwright reads r/photoshop/new/ titles via Gemini URL context but returns no thread links.
+
+- 2026-11-18 session 37: 0.22.0 from the Inkscape manual notes: trace --speckle/--blur/--stack/--no-background/--scans N, SVG arcs as exact cubics, export --units mm viewBox in mm, clip-path noted. Skipped 12 (clips boolean, text outlines: no rung 1 boolean). tests/test_phw21.py.
+- 2026-11-18 session 37: PHW_RUNG_MAX=1 full suite had 8 failures on origin/main too: tests/test_phw20.py deleted PHW_RUNG_MAX after its refusal test (later tests ran at rung 2) and its PDF/EPS/video tests did not skip at rung 1. Fixed in 0.22.0.

@@ -83,8 +83,56 @@ def parse_transform(s):
     return M
 
 
+def arc_cubics(p0, rx, ry, phi, large, sweep, p1):
+    """SVG elliptical arc (endpoint form, SVG 1.1 F.6) as cubic segments, at most 90 degrees each."""
+    if np.allclose(p0, p1):
+        return []
+    rx, ry = abs(rx), abs(ry)
+    if rx < 1e-12 or ry < 1e-12:
+        return [("L", p1)]
+    c, s = math.cos(math.radians(phi)), math.sin(math.radians(phi))
+    dx, dy = (p0[0] - p1[0]) / 2, (p0[1] - p1[1]) / 2
+    x1, y1 = c * dx + s * dy, -s * dx + c * dy
+    lam = x1 * x1 / (rx * rx) + y1 * y1 / (ry * ry)
+    if lam > 1:
+        rx, ry = rx * math.sqrt(lam), ry * math.sqrt(lam)
+    num = rx * rx * ry * ry - rx * rx * y1 * y1 - ry * ry * x1 * x1
+    k = math.sqrt(max(0.0, num / (rx * rx * y1 * y1 + ry * ry * x1 * x1)))
+    if bool(large) == bool(sweep):
+        k = -k
+    cx1, cy1 = k * rx * y1 / ry, -k * ry * x1 / rx
+    cx, cy = c * cx1 - s * cy1 + (p0[0] + p1[0]) / 2, s * cx1 + c * cy1 + (p0[1] + p1[1]) / 2
+    t1 = math.atan2((y1 - cy1) / ry, (x1 - cx1) / rx)
+    t2 = math.atan2((-y1 - cy1) / ry, (-x1 - cx1) / rx)
+    dt = t2 - t1
+    if sweep and dt < 0:
+        dt += 2 * math.pi
+    elif not sweep and dt > 0:
+        dt -= 2 * math.pi
+    n = max(1, math.ceil(abs(dt) / (math.pi / 2) - 1e-9))
+    h = dt / n
+    al = 4 / 3 * math.tan(h / 4)
+
+    def pt(t):
+        x, y = rx * math.cos(t), ry * math.sin(t)
+        return (c * x - s * y + cx, s * x + c * y + cy)
+
+    def dv(t):
+        x, y = -rx * math.sin(t), ry * math.cos(t)
+        return (c * x - s * y, s * x + c * y)
+
+    out = []
+    for j in range(n):
+        a, b = t1 + j * h, t1 + (j + 1) * h
+        pa, pb, da, db = pt(a), pt(b), dv(a), dv(b)
+        end = p1 if j == n - 1 else pb
+        out.append(("C", (pa[0] + al * da[0], pa[1] + al * da[1]), (pb[0] - al * db[0], pb[1] - al * db[1]), end))
+    return out
+
+
 def parse_d(d):
-    """Path data to subs (absolute, cubic only). Arcs become lines (counted in the notes)."""
+    """Path data to subs (absolute, cubic only): implicit repeats, H/V, S/T reflections, arcs as cubics.
+    The second value counts arcs (0.22.0: converted exactly to cubics, no longer read as lines)."""
     toks = re.findall(r"[MmLlHhVvCcSsQqTtZzAa]|" + NUM, d or "")
     subs, cur, start, sub, i, cmd, lastc, lastq, arcs = [], (0.0, 0.0), (0.0, 0.0), None, 0, None, None, None, 0
 
@@ -162,7 +210,8 @@ def parse_d(d):
         elif c == "A":
             v = nums(7)
             p = (v[5] + ox, v[6] + oy)
-            seg(("L", p))
+            for g in arc_cubics(cur, v[0], v[1], v[2], v[3], v[4], p):
+                seg(g)
             cur = p
             arcs += 1
     return subs, arcs
@@ -255,8 +304,8 @@ def parse_svg(text):
         else:
             skipped[tag] = skipped.get(tag, 0) + 1
             return
-        if arcs:
-            doc["notes"].append(f"{arcs} arc command(s) read as straight lines")
+        if el.get("clip-path") or "clip-path" in (el.get("style") or ""):
+            doc["notes"].append(f"{tag}: clip-path ignored (drawn unclipped; no polygon boolean at rung 1)")
         fill = parse_color(a.get("fill", "#000000"))
         stroke = parse_color(a.get("stroke"))
         if tag in ("polyline", "line"):
@@ -305,8 +354,13 @@ def path_d(subs):
 def to_svg(doc, units=None, dpi=96.0):
     W, H = doc["width"], doc["height"]
     if units in ("mm", "in"):
+        # physical size, and a viewBox in the same unit (1 user unit = 1 mm or 1 in): coordinates are scaled
         k = (25.4 if units == "mm" else 1.0) / dpi
         size = f'width="{fnum(W * k)}{units}" height="{fnum(H * k)}{units}"'
+        M = np.diag([k, k, 1.0])
+        doc = dict(doc, shapes=[dict(sh, subs=transform_subs(sh["subs"], M), width=sh["width"] * k)
+                                for sh in doc["shapes"]])
+        W, H = W * k, H * k
     else:
         size = f'width="{fnum(W)}" height="{fnum(H)}"'
     body = []
