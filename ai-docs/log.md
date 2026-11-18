@@ -111,3 +111,4 @@
 - 2026-11-18 session 45: decompose photo test (PR #55, caption no help); beat scan 2 (indie-ai-scout #71); beat findings into LEARNINGS; next Moebius vs lama, VTracer alpha.4 wrapper check.
 
 - 2026-11-18 session 46: VTracer 1.0.0-alpha.4 is still latest (released 2026-08-29); wrapper already tested on it, nothing to do. Moebius bake-off blocked: node install + weight download needs Mark's go-ahead. Stale non-git folders ../photowright-s26, -s40, -stepbc are leftovers, not worktrees.
+- 2026-11-18 (session 47): ran the 4 remaining beat search rows; leads lineart-trace (centreline) and GIMP 3.2.8 gimp-batch-folder; nothing else new. Moebius still waits on Mark.
