@@ -6,6 +6,11 @@ Entry shape: `### C-YYYYMMDD-n · date · one-line summary`, then `because:`, `f
 
 ## Unreleased
 
+### C-20261118-11 · 2026-11-18 · 0.15.0: `blurgallery --iris/--path`, `filtergallery`, `paint`, `camove`, `export-layers`, `cropstraighten`
+because: the gap note's build-next list after 0.14.0 (ai-docs/notes/coverage-gaps-2026-11-17.md), rung 1 rows.
+files: scripts/phw/gallery.py, scripts/phw/toolbox.py, scripts/phw/__init__.py, scripts/phw/core.py, tests/test_phw14.py, skills/photowright/SKILL.md, .claude-plugin/plugin.json.
+Iris and Path Blur, Filter Gallery (chain of phw edit commands with a preview sheet), Blur/Sharpen/Smudge brushes along strokes, Content-Aware Move, Export Layers/Artboards to Files and Crop and Straighten Photos, NumPy and Pillow only, each with a numeric proof in tests/test_phw14.py.
+
 ### C-20261118-10 · 2026-11-18 · 0.14.0: `variables`, `blurgallery`, `fibers`, `deinterlace`, `ntsc`, `liquify --mode twirl|pucker|bloat`
 because: the gap note's build-next list (ai-docs/notes/coverage-gaps-2026-11-17.md), rung 1 rows.
 files: scripts/phw/datamerge.py, scripts/phw/gallery.py, scripts/phw/kernels.py, scripts/phw/__init__.py, tests/test_phw13.py, skills/photowright/SKILL.md, scripts/phw/core.py, .claude-plugin/plugin.json.

@@ -1,6 +1,7 @@
 """Batch 13 (0.14.0): the next rung 1 rows of the coverage table (ai-docs/notes/coverage-gaps-2026-11-17.md).
 
-blurgallery: Tilt-Shift (sharp band, linear ramp to a full Gaussian) and Field Blur (pins with a sigma
+blurgallery: Iris Blur (sharp ellipse, ramp) and Path Blur (motion along a polyline) added in 0.15.0;
+             Tilt-Shift (sharp band, linear ramp to a full Gaussian) and Field Blur (pins with a sigma
              each, inverse-distance-squared blend of the per-sigma Gaussians).
 fibers:      seeded vertical fibres between a foreground and background colour (Render > Fibers).
 deinterlace: drop the odd or even field, refill by duplication or interpolation.
@@ -47,6 +48,68 @@ def op_tilt(img, p, used):
     out = np.where(t > 0, c * (1 - t) + b * t, c)
     used.add("blurgallery.tilt", 1, "own tilt-shift ramp over a Gaussian")
     return img.with_color(np.clip(out, 0, 1).astype(np.float32))
+
+
+def op_iris(img, p, used):
+    """Elliptical sharp area (centre cx, cy, radii rx, ry, rotated `angle` degrees); r = the
+    normalised ellipse radius, d = (r - 1) x min(rx, ry) px past the edge, t = clip(d / ramp, 0, 1);
+    out = src (1 - t) + gaussian(sigma) t. Inside the ellipse the source is unchanged."""
+    c = img.color()
+    h, w = c.shape[:2]
+    cx, cy, rx, ry = (float(v) for v in p["ellipse"])
+    ramp, a = max(1e-6, float(p.get("ramp", 20))), math.radians(float(p.get("angle", 0)))
+    Y, X = np.mgrid[0:h, 0:w].astype(np.float64)
+    u = (X - cx) * math.cos(a) + (Y - cy) * math.sin(a)
+    v = -(X - cx) * math.sin(a) + (Y - cy) * math.cos(a)
+    r = np.sqrt((u / max(rx, 1e-6)) ** 2 + (v / max(ry, 1e-6)) ** 2)
+    t = np.clip((r - 1) * min(rx, ry) / ramp, 0, 1)[..., None].astype(np.float32)
+    b = blur_all(c, float(p["sigma"]), used)
+    out = np.where(t > 0, c * (1 - t) + b * t, c)
+    used.add("blurgallery.iris", 1, "own elliptical ramp over a Gaussian")
+    return img.with_color(np.clip(out, 0, 1).astype(np.float32))
+
+
+def path_dirs(pts, X, Y):
+    """Unit tangent of the nearest segment of the polyline at every pixel."""
+    best = np.full(X.shape, np.inf)
+    TX, TY = np.ones(X.shape), np.zeros(X.shape)
+    for (x0, y0), (x1, y1) in zip(pts[:-1], pts[1:]):
+        dx, dy = x1 - x0, y1 - y0
+        L2 = dx * dx + dy * dy
+        if L2 == 0:
+            continue
+        s = np.clip(((X - x0) * dx + (Y - y0) * dy) / L2, 0, 1)
+        d = (X - x0 - s * dx) ** 2 + (Y - y0 - s * dy) ** 2
+        m = d < best
+        best = np.where(m, d, best)
+        L = math.sqrt(L2)
+        TX, TY = np.where(m, dx / L, TX), np.where(m, dy / L, TY)
+    return TX, TY
+
+
+def op_pathblur(img, p, used):
+    """Motion blur that follows a drawn path: every pixel averages 2k + 1 samples at offsets
+    -k..k px (k = round(length / 2)) along the tangent of the nearest path segment, bilinear,
+    clamped at the border. A straight path equals a motion blur at that angle."""
+    pts = np.asarray(p["points"], np.float64).reshape(-1, 2)
+    k = int(round(float(p.get("length", 10)) / 2))
+    c = img.color()
+    if k <= 0 or len(pts) < 2:
+        used.add("blurgallery.path", 1, "identity (length 0)")
+        return img.copy()
+    h, w = c.shape[:2]
+    Y, X = np.mgrid[0:h, 0:w].astype(np.float64)
+    TX, TY = path_dirs(pts, X, Y)
+    acc = np.zeros(c.shape, np.float64)
+    for j in range(-k, k + 1):
+        sx, sy = np.clip(X + j * TX, 0, w - 1), np.clip(Y + j * TY, 0, h - 1)
+        x0, y0 = np.floor(sx).astype(int), np.floor(sy).astype(int)
+        x1, y1 = np.minimum(x0 + 1, w - 1), np.minimum(y0 + 1, h - 1)
+        fx, fy = (sx - x0)[..., None], (sy - y0)[..., None]
+        acc += (c[y0, x0] * (1 - fx) * (1 - fy) + c[y0, x1] * fx * (1 - fy)
+                + c[y1, x0] * (1 - fx) * fy + c[y1, x1] * fx * fy)
+    used.add("blurgallery.path", 1, "own path-following motion blur")
+    return img.with_color(np.clip(acc / (2 * k + 1), 0, 1).astype(np.float32))
 
 
 def op_field(img, p, used):
@@ -163,7 +226,7 @@ def op_liquify_brush(img, p, used):
                            np.clip(SY, 0, h - 1).astype(np.float32), used, "liquify")
 
 
-OPS.update({"blurgallery.tilt": op_tilt, "blurgallery.field": op_field, "fibers": op_fibers,
+OPS.update({"blurgallery.iris": op_iris, "blurgallery.path": op_pathblur, "blurgallery.tilt": op_tilt, "blurgallery.field": op_field, "fibers": op_fibers,
             "deinterlace": op_deinterlace, "ntsc": op_ntsc, "liquify.brush": op_liquify_brush})
 
 
@@ -177,8 +240,14 @@ def cmd_blurgallery(a):
     if a.field:
         steps.append({"op": "blurgallery.field",
                       "params": {"pins": [floats(t, 3) for t in a.field.replace(";", " ").split()]}})
+    if a.iris:
+        steps.append({"op": "blurgallery.iris", "params": {"ellipse": floats(a.iris, 4), "ramp": a.ramp,
+                                                           "sigma": a.sigma, "angle": a.angle}})
+    if a.path:
+        steps.append({"op": "blurgallery.path", "params": {"points": [floats(t, 2) for t in a.path.replace(";", " ").split()],
+                                                           "length": a.length}})
     if not steps:
-        raise SystemExit("blurgallery: give --tilt or --field")
+        raise SystemExit("blurgallery: give --tilt, --iris, --path or --field")
     return core.edit_command(a, "blurgallery", with_mask(a, steps))
 
 
@@ -197,12 +266,15 @@ def cmd_ntsc(a):
 
 
 def add_commands(sub, edit):
-    p = edit("blurgallery", cmd_blurgallery, "Blur Gallery: tilt-shift band, field blur pins (rung 1)")
+    p = edit("blurgallery", cmd_blurgallery, "Blur Gallery: tilt-shift, iris, path, field blur (rung 1)")
     p.add_argument("--tilt", help="Y0,Y1 sharp band (rows through the centre line)")
     p.add_argument("--ramp", type=float, default=20.0, help="px from the band edge to full blur")
     p.add_argument("--sigma", type=float, default=6.0, help="full blur sigma")
     p.add_argument("--angle", type=float, default=0.0, help="band angle in degrees")
     p.add_argument("--field", help="'x,y,sigma x,y,sigma ...' pins")
+    p.add_argument("--iris", help="CX,CY,RX,RY sharp ellipse (rotated by --angle); --ramp, --sigma as tilt")
+    p.add_argument("--path", help="'x,y x,y ...' path: motion blur along its nearest segment")
+    p.add_argument("--length", type=float, default=10.0, help="path blur length in px")
     p.add_argument("--mask", help="8-bit mask PNG: edit applies where white")
     p = edit("fibers", cmd_fibers, "Render Fibers: seeded vertical fibres between --fg and --bg (rung 1)")
     p.add_argument("--variance", type=float, default=16.0, help="contrast (16 = full range)")
@@ -223,5 +295,5 @@ def add_commands(sub, edit):
 
 core.EXTRA_COMMANDS.append(add_commands)
 core.DOCTOR_GROUPS.append(lambda: {
-    "blurgallery (tilt-shift, field), fibers, deinterlace, ntsc, liquify twirl/pucker/bloat": (1, "own NumPy"),
+    "blurgallery (tilt-shift, iris, path, field), fibers, deinterlace, ntsc, liquify twirl/pucker/bloat": (1, "own NumPy"),
 })
