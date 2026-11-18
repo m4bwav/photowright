@@ -99,3 +99,5 @@
 2026-11-18 (session 39): 8199 idle: first live relight run passed (13.5 s cold, 4.1 s warm; IC-Light repaints detail, PSNR 15.5 dB vs source) — ai-docs/notes/bakeoff/relight-live-2026-11-18.md. Follow-up idea: `relight --keep-detail` (high frequencies from the source). Layers (layerdiffuse) wiring still open.
 
 2026-11-18 (session 40): built phw 0.24.0 `relight --keep-detail SIGMA` (relit lows + source highs). Live on 8199, sigma 4: high-pass correlation with the source 0.965 vs 0.455 plain, same lighting; faint halo on hard edges. Notes in ai-docs/notes/bakeoff/relight-live-2026-11-18.md. Next: layers (layerdiffuse) wiring.
+- 2026-11-18: chain_loop stopped after 4 sessions (no-progress): session 40 ended its -p turn waiting on a background test, leaving s40-keepdetail uncommitted. Continue prompt now forbids ending a turn on a background wait; loop restarted.
+- 2026-11-18 session 41: finished the leftover s40 worktree: both suites pass, PR #48 merged, v0.24.0 released (relight --keep-detail). Next: layers (layerdiffuse) wiring when 8199 is idle.

@@ -142,6 +142,8 @@ Put the question on an askwright page, record the set in HANDOFF.md, and carry o
 
 If HANDOFF.md says `Status: finished`, or nothing can move without Mark, say what waits and stop. Waiting on a review of pictures never ends a session while research, tests, evals or books remain.
 
+Unattended runs use `claude -p`, where ending a turn ends the session: never end a turn waiting on a background job. Run tests in the foreground (Bash timeout up to 600000 ms) or poll until they finish. On start, look for a leftover `../photowright-s*` worktree with uncommitted work and finish it first.
+
 ## 6. Hand over
 
 Run the wrap-up (evergreen-wrapup, if installed; a failure is reported and never blocks), update `ai-docs/log.md` and `ai-docs/HANDOFF.md`, and only then print the start command: `Execute D:/m4bwa/Claude/Projects/Ai/photowright/ai-docs/plans/photowright-continue-prompt.md`, with the folder to start in (`D:/m4bwa/Claude/Projects/Ai`). State goes in HANDOFF.md, never in this file.
