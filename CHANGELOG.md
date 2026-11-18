@@ -6,6 +6,11 @@ Entry shape: `### C-YYYYMMDD-n · date · one-line summary`, then `because:`, `f
 
 ## Unreleased
 
+### C-20261118-13 · 2026-11-18 · 0.17.0: `caextend`, `shake`, `indexed`, `layerstyle --satin`; live ComfyUI tests never hang
+because: the gap note's build-next list after 0.16.0, and the full suite hung in tests/test_comfy.py while another session's render held 8199.
+files: scripts/phw/extend.py, scripts/phw/fills.py, scripts/phw/core.py (run --upto), scripts/phw/__init__.py, scripts/phw/core.py, tests/test_phw16.py, tests/test_comfy.py, skills/photowright/SKILL.md, .claude-plugin/plugin.json.
+Content-Aware Extend (copy + Poisson blend), Shake Reduction for a known straight trace (Richardson-Lucy), Indexed Color with a dither choice (none, Floyd-Steinberg, ordered Bayer, seeded noise; auto, web, grey, .hex/.gpl palettes) the Satin layer style and History snapshots (`run --upto N`), each with a numeric proof in tests/test_phw16.py. The live ComfyUI tests now skip when the queue is busy or the server takes over 3 s to answer, and cap each wait at PHW_COMFY_TEST_WAIT (240 s).
+
 ### C-20261118-12 · 2026-11-18 · 0.16.0: `gradient`, `pattern`, fill layers, `layerstyle`, `blendif`, `replacecolor`, `focusarea`, `erase`, `bucket`
 because: the gap note's build-next list after 0.15.0 (ai-docs/notes/coverage-gaps-2026-11-17.md), rung 1 rows.
 files: scripts/phw/fills.py, scripts/phw/compose.py, scripts/phw/__init__.py, scripts/phw/core.py, tests/test_phw15.py, skills/photowright/SKILL.md, .claude-plugin/plugin.json.

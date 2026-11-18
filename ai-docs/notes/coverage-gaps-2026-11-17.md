@@ -32,10 +32,10 @@ Status: **BUILT 0.9.0** = built in this session (tests/test_phw8.py); gap = stil
 | Camera Raw basic panel | 2 | gap | none planned |
 | Dehaze | 1 | **BUILT 0.11.0** `detail --dehaze` dark channel prior (synthetic haze RMS to truth < 40% of hazy) | `adjust` |
 | Clarity / Texture | 1 | **BUILT 0.11.0** Clarity `detail --clarity` (flat unchanged, spread x1.2); **BUILT 0.13.0** Texture `fx --texture` (0 identity, flat unchanged, +0.8 raises adjacent-difference energy >1.3x, -1 lowers it <0.7x, mean within 1/255) | `adjust` |
-| Indexed colour / palette for web | 1 | partial (convert palette, trace quantise; no dither choice) | `convert` |
+| Indexed colour / palette for web | 1 | **BUILT 0.17.0** `indexed --palette auto|web|gray|FILE --dither none|floyd|ordered|noise` (none == brute-force nearest; FS white share on grey 128 within 1/100, Bayer 8 within 1/64; transparency index) | `convert` |
 | Blend If | 1 | **BUILT 0.16.0** `blendif --layer --this b0,b1,w0,w1 --under ... --channel` (defaults == normal over bit-exact, underlying 128 split keeps base below exactly, split ramp half within 1/255) | `layers` |
 | Gradient tool, fill layers (gradient, pattern) | 1 | **BUILT 0.16.0** `gradient --kind linear|radial|angle|reflected|diamond --start --end --colors` and `pattern --tile --offset`; `layers` types `gradient`/`pattern` (linear == projection within 1/255, radial == distance, fill layer == command within 1/255, pattern bit-exact) | `layers` |
-| Inner Shadow, Outer/Inner Glow, Bevel, Satin, overlays | 1 | **BUILT 0.16.0** `layerstyle --color-overlay --gradient-overlay --inner-shadow --inner-glow --outer-glow --bevel` (overlay exact inside, alpha kept; outer glow leaves the layer bit-exact and falls off; bevel centre unchanged, lit edge brighter); Satin still a gap | `layers` |
+| Inner Shadow, Outer/Inner Glow, Bevel, Satin, overlays | 1 | **BUILT 0.16.0** (Satin BUILT 0.17.0: interior bit-exact, alpha kept) `layerstyle --color-overlay --gradient-overlay --inner-shadow --inner-glow --outer-glow --bevel` (overlay exact inside, alpha kept; outer glow leaves the layer bit-exact and falls off; bevel centre unchanged, lit edge brighter); Satin still a gap | `layers` |
 | Smart Objects / Smart Filters / linked | 1 | partial (layered recipe re-renders) | `layers` |
 | Artboards, Layer comps | 1 | gap | `layers` |
 | Auto-Blend Layers | 2 | partial (stack focus mode) | `stack` |
@@ -47,7 +47,7 @@ Status: **BUILT 0.9.0** = built in this session (tests/test_phw8.py); gap = stil
 | Focus Area | 1 | **BUILT 0.16.0** `focusarea --radius [--threshold] [--soft]` (Laplacian energy + Otsu, pulled back 2 sigma: sharp/blurred halves >95% right 4 px from the seam, sharp disc IoU > 0.75) | `select --focus` |
 | Quick Selection | 2 | partial (GrabCut in cutout) | `select` |
 | Spot Healing Brush | 2 | partial (`heal`) | `heal` |
-| Content-Aware Move / Extend | 2 | partial: **BUILT 0.15.0** Move `camove --rect x,y,w,h --to dx,dy --method` (block lands bit-exact, outside both rects bit-exact, vacated area on flat bg within 2/255, replay bit-exact); Extend still a gap | `fill` |
+| Content-Aware Move / Extend | 2 | partial: **BUILT 0.15.0** Move `camove --rect x,y,w,h --to dx,dy --method` (block lands bit-exact, outside both rects bit-exact, vacated area on flat bg within 2/255, replay bit-exact); **Extend BUILT 0.17.0** `caextend` (source and outside dest bit-exact, dest ring kept, interior gradients == patch within 2/255) | `fill` |
 | Dodge / Burn / Sponge | 1 | **BUILT 0.12.0** `tonebrush --mask` (highlights dodge moves bright 3x dark, 0/255 fixed; sponge chroma -40%, luma within 2/255) | `adjust --mask` route |
 | Blur / Sharpen / Smudge brushes, brush engine | 1 | **BUILT 0.15.0** `paint --tool blur|sharpen|smudge --stroke --radius --strength` (strength 0 identity, beyond radius bit-exact, blur halves noise std, sharpen HF energy >1.5x, smudge drags a blob centroid >2 px, flat unchanged); full brush engine still a gap | new `paint` |
 | Eraser / Magic Eraser / Paint Bucket | 1 | **BUILT 0.16.0** `erase --stroke|--magic x,y --tolerance [--all]`, `bucket --at --color --tolerance [--all]` (beyond radius bit-exact, stroke alpha 0, contiguous vs global regions exact, replay bit-exact) | `mask`/`select` |
@@ -55,7 +55,7 @@ Status: **BUILT 0.9.0** = built in this session (tests/test_phw8.py); gap = stil
 | Frequency separation | 1 | **BUILT 0.11.0** `detail --freq-sep --part low|high` (low+high-0.5 within 2/255) | `filter` |
 | Radial, Lens, Surface, Shape blur; Blur Gallery | 1 | partial: **BUILT 0.12.0** `blurfx --spin/--zoom` (rings/spokes kept, spoke spread halved) and `--surface R,T` (100-level step exact, noise std halved); **BUILT 0.13.0** `lensblur --lens R --iris disc; **BUILT 0.15.0** `--iris CX,CY,RX,RY` (inside ellipse bit-exact, beyond ramp == Gaussian within 1/255) and `--path 'x,y ...' --length` (horizontal path == mean of shifts within 1/255, vertical stripes unchanged along a vertical path) |hexagon --boost` (flat unchanged, dot spreads to disc/hexagon area within 15%, boost raises energy >1.5x) and `--shape-blur` (square == box blur within 1/255); **BUILT 0.14.0** `blurgallery --tilt` (band bit-identical, beyond ramp == full Gaussian within 1/255) and `--field` (at a pin == that sigma's Gaussian within 1/255) | `filter` |
 | Smart Sharpen | 1 | **BUILT 0.11.0** `detail --smart-sharpen` Wiener (sigma 1.5 blur: RMS < 70% of blurred and below unsharp) | `sharpen` |
-| Shake Reduction | 2 | gap | `sharpen` |
+| Shake Reduction | 2 | **BUILT 0.17.0 (rung 1)** `shake --length --angle` known straight trace, Richardson-Lucy (error a third lower; wrong angle worse); blind trace estimate still a gap | `sharpen` |
 | Add Noise | 1 | **BUILT 0.10.0** (std within 5%, mean shift < 0.5/255, seeded) | `filter` |
 | Emboss, Find Edges, Trace Contour | 1 | **BUILT 0.10.0** Emboss + Find Edges (flat -> 128 / 255 exactly); **BUILT 0.12.0** Trace Contour (black pixels within 1.5 px of a disc's radius) | `filter` |
 | Diffuse, Wind, Extrude, Tiles; Oil Paint; Pixelate family | 1 | partial: **BUILT 0.11.0** Mosaic `pixelate --cell` (cell = source mean within 1/255); **BUILT 0.12.0** Crystallize (cell = source mean within 1/255), Color Halftone (flat grey mean within 10/255), Diffuse (3x3 neighbour, seeded), Wind (one-sided decaying trail), Oil Paint (Kuwahara: step two-valued, noise std halved); **BUILT 0.13.0** `fx --pointillize` (pixels are bg or cell means, flat -> 2 values, seeded), `--extrude` (depth 0 == block means within 1/255, flat -> colour and 0.6x only), `--tiles` (offset 0 identity, pixels from source or bg, seeded) | `filter` |
@@ -74,7 +74,7 @@ Status: **BUILT 0.9.0** = built in this session (tests/test_phw8.py); gap = stil
 | Make Work Path from selection | 2 | partial (trace of a mask) | `trace` |
 | Variables (data-driven graphics) | 1 | **BUILT 0.14.0** `variables TEMPLATE.json DATA.csv OUTDIR --name COL` (each row == `layers` on the edited recipe bit-exact, text and image swapped, template unchanged, rerun writes nothing, a missing-image row reported and the rest finish) | `batch` |
 | Export layers / artboards; Generator assets | 1 | **BUILT 0.15.0** `export-layers FILE OUTDIR [--trim] [--artboards]` (layers composited back == flattened within 1.5/255 from recipe and PSD, trim boxes == layer rects, artboard == group alone); Generator assets still a gap | `open` |
-| History / Snapshots | 1 | partial (recipes + log) | `run` |
+| History / Snapshots | 1 | **BUILT 0.17.0** `run RECIPE --upto N` (0 == source, 1 == first edit bit-exact, N == full replay) | `run` |
 | Layered TIFF, AVIF/HEIC/JXL, camera raw, PDF/EPS open, video layers | 2 | gap | `open`/`convert` |
 
 Built in 0.10.0 (tests/test_phw9.py): Auto Tone/Contrast/Color, Vibrance, Shadows/Highlights, Match Color, Add Noise, Emboss, Find Edges, Canvas Size, Trim.
@@ -89,4 +89,6 @@ Built in 0.15.0 (tests/test_phw14.py): Iris Blur, Path Blur, Filter Gallery, Blu
 
 Built in 0.16.0 (tests/test_phw15.py): Gradient tool, gradient and pattern fill layers, Layer styles (colour/gradient overlay, inner shadow, inner/outer glow, bevel), Blend If, Replace Color, Focus Area, Eraser, Magic Eraser, Paint Bucket.
 
-Next most valuable rung 1 builds (after 0.16.0): Content-Aware Extend, Vanishing Point, Satin style, Indexed colour dither choice, Artboards/Layer comps, Generator assets, History snapshots.
+Built in 0.17.0 (tests/test_phw16.py): Content-Aware Extend, Shake Reduction (known trace), Indexed colour with dither choice, Satin style, History snapshots (`run --upto N`).
+
+Next most valuable rung 1 builds (after 0.17.0): Vanishing Point, Artboards/Layer comps, Generator assets, Auto-Align Layers, Magnetic Lasso, Merge to HDR (Debevec), HDR Toning.

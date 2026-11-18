@@ -40,7 +40,7 @@ try:
 except Exception:  # pragma: no cover - Pillow built without LittleCMS
     ImageCms = None
 
-VERSION = "0.16.0"
+VERSION = "0.17.0"
 ROOT = Path(__file__).resolve().parent.parent.parent
 
 # Hooks filled by the other modules of the package (masks, compose, layered).
@@ -1244,9 +1244,15 @@ def cmd_run(a):
     bad = others_changed(r["steps"], recipe.parent)
     if bad:
         notes.append("other inputs missing or changed since the recipe: " + ", ".join(bad))
+    steps = r["steps"]
+    upto = getattr(a, "upto", None)
+    if upto is not None:  # History panel: the state after step N (0 = the source)
+        if not 0 <= upto <= len(steps):
+            raise SystemExit(f"run --upto {upto}: the recipe has {len(steps)} steps (0..{len(steps)})")
+        steps = steps[:upto]
     used = Used()
     img = load(src, used)
-    img = apply_steps(img, r["steps"], used, recipe.parent)
+    img = apply_steps(img, steps, used, recipe.parent)
     out = Path(a.output) if a.output else recipe.parent / "out" / f"{src.stem}{a.ext or src.suffix}"
     out.parent.mkdir(parents=True, exist_ok=True)
     out = free_path(out)
@@ -1359,6 +1365,7 @@ def build_parser():
     p.add_argument("-o", "--output")
     p.add_argument("--ext", help="output extension when -o is not given")
     p.add_argument("--bits", type=int, choices=(8, 16))
+    p.add_argument("--upto", type=int, help="History snapshot: replay only the first N steps (0 = source)")
     p.set_defaults(fn=cmd_run)
     return ap
 

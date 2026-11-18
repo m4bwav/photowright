@@ -205,6 +205,18 @@ def op_layerstyle(img, p, used):
         c = c * (1 - hi) + screen(c, 1.0) * hi
         c = c * (1 - lo)
         names.append("bevel")
+    if p.get("satin"):
+        s = p["satin"]
+        ang, d = math.radians(float(s.get("angle", 19))), float(s.get("distance", 11))
+        dx, dy = int(round(d * math.cos(ang))), int(round(-d * math.sin(ang)))
+        sz = float(s.get("size", 14)) / 2
+        k = np.abs(blur1(shift(A, dx, dy, 0.0), sz) - blur1(shift(A, -dx, -dy, 0.0), sz))
+        if s.get("invert"):
+            k = 1 - k
+        k = (np.clip(k, 0, 1) * A * float(s.get("opacity", 0.5)))[..., None]
+        col = np.asarray(hexcol4(s.get("color", "#000000"))[:3])
+        c = c * (1 - k) + c * col * k
+        names.append("satin")
     if p.get("gradient_overlay"):
         s = p["gradient_overlay"]
         h, w = A.shape
@@ -404,13 +416,13 @@ def style_arg(s, extra=None):
 
 def cmd_layerstyle(a):
     p = {}
-    for k in ("color_overlay", "gradient_overlay", "inner_shadow", "inner_glow", "outer_glow", "bevel"):
+    for k in ("color_overlay", "gradient_overlay", "inner_shadow", "inner_glow", "outer_glow", "bevel", "satin"):
         v = getattr(a, k)
         if v is not None:
             p[k] = style_arg(v)
     if not p:
         raise SystemExit("layerstyle: give one or more of --color-overlay, --gradient-overlay, --inner-shadow, "
-                         "--inner-glow, --outer-glow, --bevel (each 'key=value,...' or '' for defaults)")
+                         "--inner-glow, --outer-glow, --bevel, --satin (each 'key=value,...' or '' for defaults)")
     if "gradient_overlay" in p and "colors" not in p["gradient_overlay"]:
         p["gradient_overlay"]["colors"] = colours("#000000 #ffffff")
     return core.edit_command(a, "layerstyle", with_mask(a, [{"op": "layerstyle", "params": p}]))
@@ -477,7 +489,8 @@ def add_commands(sub, edit):
                  ("inner-shadow", "color,opacity=0.75,angle=120,distance=4,size=4"),
                  ("inner-glow", "color=#ffffbe,opacity=0.75,size=5"),
                  ("outer-glow", "color=#ffffbe,opacity=0.75,size=5,spread=0"),
-                 ("bevel", "size=5,depth=1,angle=120,altitude=30,highlight=0.75,shadow=0.75")):
+                 ("bevel", "size=5,depth=1,angle=120,altitude=30,highlight=0.75,shadow=0.75"),
+                 ("satin", "color=#000000,opacity=0.5,angle=19,distance=11,size=14,invert=0")):
         p.add_argument("--" + k, nargs="?", const="", help=f"'{h}' ('' for defaults)")
     p.add_argument("--mask", help="8-bit mask PNG: edit applies where white")
     p = edit("blendif", cmd_blendif, "Blend If: top layer over the image by tone ranges (rung 1)")
