@@ -12,3 +12,14 @@ Findings:
 - The route works end to end with no code change; the work size (768x448) is upscaled back to 864x480.
 - IC-Light (SD1.5) invents detail: the tail's markings are lost and the grass texture is new. The `invented_detail: true` step flag and the "check faces, text and fine detail" note are right; do not use it where the subject's detail must survive (logos, faces, text) without a mask-back.
 - Possible follow-up (not built): `--keep-detail`, which puts the source's high frequencies back over the relit low frequencies (frequency separation exists in `detail`), so only the lighting changes.
+
+## --keep-detail (0.24.0, session 40)
+
+Same source, prompt, light and seed, 8199 idle. Measures vs source: PSNR, and correlation of the 4 px high-pass bands.
+
+| run | PSNR | high-pass corr | mean RGB shift |
+|---|---|---|---|
+| `--keep-detail 0` (plain IC-Light) | 14.26 dB | 0.455 | +0.127 +0.109 +0.095 |
+| `--keep-detail 4` | 14.32 dB | 0.965 | +0.127 +0.109 +0.095 |
+
+The lighting is identical; the car, tail emblem and cloud wisps come back. A faint halo shows along the tail's edge against the sky, where the relit lows change sharply. Outputs and crop sheet: photowright-jobs/5-relight/kd0.png, kd4.png, kd-sheet.png.

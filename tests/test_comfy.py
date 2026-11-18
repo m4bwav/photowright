@@ -355,6 +355,31 @@ class Fallback(unittest.TestCase):
         self.assertTrue(seen["graph"]["limg"]["inputs"]["image"].endswith("_light.png"))
         self.assertEqual(Image.open(r["output"]).size, (96, 80))
 
+    def test_keep_detail_takes_source_highs_and_relit_lows(self):
+        from phw.transform import keep_detail
+        rng = np.random.default_rng(1)
+        src = np.clip(0.5 + 0.2 * rng.standard_normal((40, 40, 3)), 0, 1).astype(np.float32)
+        relit = np.full_like(src, 0.3)
+        out = keep_detail(src, relit, 3.0, None)
+        self.assertAlmostEqual(float(out.mean()), 0.3, delta=0.02)
+        self.assertGreater(float(np.corrcoef((out - out.mean()).ravel(), (src - src.mean()).ravel())[0, 1]), 0.9)
+
+    def test_mocked_relight_keep_detail_clears_invented_flag(self):
+        def fake_post(path, data=None, headers=None, timeout=30):
+            if path == "/queue":
+                return b'{"queue_running": [], "queue_pending": []}'
+            if path == "/prompt":
+                return b'{"prompt_id": "p1"}'
+            return b'{"p1": {"status": {"completed": true}, "outputs": {"out": {"images": [{"filename": "o.png"}]}}}}'
+        with mock.patch.object(comfy, "check"), mock.patch.object(comfy, "upload", side_effect=lambda d, n: n), \
+                mock.patch.object(comfy, "_req", side_effect=fake_post), \
+                mock.patch.object(comfy, "fetch_first", return_value=np.full((512, 576, 3), 0.25, np.float32)):
+            r = run("relight", self.src, "--prompt", "sunset", "--keep-detail", 4, "-o", self.d / "r.png")
+        prm = r["steps"][0]["params"]
+        self.assertFalse(prm["invented_detail"])
+        self.assertEqual(prm["keep_detail"], 4.0)
+        self.assertTrue(any("--keep-detail 4" in n for n in r["notes"]), r["notes"])
+
 
 @unittest.skipUnless(server_up(), LIVE_SKIP or "")
 class Live(unittest.TestCase):

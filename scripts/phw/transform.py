@@ -226,6 +226,13 @@ def own_light(c, light, strength):
     return np.clip(to_enc(to_lin(c) * gain), 0, 1)
 
 
+def keep_detail(src, relit, sigma, used):
+    """Frequency split: the relit image's lows (Gaussian, sigma px) plus the source's highs, so IC-Light's
+    lighting stays and its repainted faces, text and texture are replaced by the original detail."""
+    from .gallery import blur_all
+    return np.clip(blur_all(relit, sigma, used) + src - blur_all(src, sigma, used), 0, 1)
+
+
 def op_relight(img, p, used):
     from . import comfy
     c = img.color()
@@ -234,16 +241,24 @@ def op_relight(img, p, used):
     if p.get("method", "iclight") == "iclight":
         try:
             res, info = comfy.iclight_relight(rgb[..., :3], p["prompt"], p["light"], int(p.get("seed", 0)))
+            sigma = float(p.get("keep_detail") or 0)
+            if sigma > 0:
+                res = keep_detail(rgb[..., :3], res, sigma, used)
             if nc == 1:
                 res = res.mean(axis=2, keepdims=True)
             px = np.concatenate([res, img.px[..., nc:]], axis=2) if img.alpha else res
             used.add("relight", 3, f"ComfyUI IC-Light ({info['model']}) + Depth Anything V2 Small")
             p.update(model=info["model"], depth=info["depth"], seed=info["seed"], work_size=info["work_size"],
-                     invented_detail=True)
+                     invented_detail=sigma <= 0)
             out = img.copy(px=px.astype(np.float32))
             out.notes.append(f"rung 3 IC-Light via {info['server']}: {info['seconds']} s, {info['queued_ahead']} jobs ahead")
-            out.notes.append(f"IC-Light repaints the whole frame at {info['work_size'][0]}x{info['work_size'][1]} "
-                             "(SD1.5): check faces, text and fine detail against the source (alpha is kept)")
+            if sigma > 0:
+                out.notes.append(f"--keep-detail {sigma:g}: source detail finer than ~{sigma:g} px kept, "
+                                 "only the lighting comes from IC-Light")
+            else:
+                out.notes.append(f"IC-Light repaints the whole frame at {info['work_size'][0]}x{info['work_size'][1]} "
+                                 "(SD1.5): check faces, text and fine detail against the source (alpha is kept); "
+                                 "--keep-detail 4 keeps the source detail")
             return out
         except comfy.Unavailable as e:
             p["fell_back"] = str(e)
@@ -505,7 +520,8 @@ def cmd_upscale(a):
 def cmd_relight(a):
     if a.method == "iclight" and not a.prompt:
         raise SystemExit('relight --model iclight needs --prompt "the light, e.g. warm sunset light from the window"')
-    p = {"method": a.method, "light": a.light, "prompt": a.prompt or "", "seed": a.seed, "strength": a.strength}
+    p = {"method": a.method, "light": a.light, "prompt": a.prompt or "", "seed": a.seed, "strength": a.strength,
+         "keep_detail": a.keep_detail}
     return one_step(a, "relight", p)
 
 
@@ -556,6 +572,8 @@ def add_commands(sub, edit):
     p.add_argument("--method", choices=("iclight", "own"), default="iclight")
     p.add_argument("--model", dest="method", choices=("iclight",), help="same as --method iclight")
     p.add_argument("--strength", type=float, default=0.5, help="rung 1 ramp strength 0..1")
+    p.add_argument("--keep-detail", type=float, default=0, metavar="SIGMA",
+                   help="keep the source's detail finer than SIGMA px over IC-Light's lighting (0: off; try 4)")
     p.add_argument("--seed", type=int, default=0)
     for name, fn, help_ in (("stack", cmd_stack, "exposure fusion (Mertens) or focus stack of aligned images"),
                             ("stitch", cmd_stitch, "panorama stitch (OpenCV, rung 2; rung 1 refuses)")):
