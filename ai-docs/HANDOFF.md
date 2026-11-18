@@ -1,5 +1,7 @@
 # HANDOFF: photowright
 
+2026-11-18 (session 43): wiki LIVE (https://github.com/m4bwav/photowright/wiki, notes/2026-11-18-github-wiki.md); beat outline + 4 metrics decided and merged (indie-ai-scout PR #70). Nothing waits on Mark. Open, agent-only: bump the status line in Ai/plugin-backlog/existing-plugins.md (says v0.21.0), a decompose run on a real photo and warm-run timing, live qwen-edit measure (8199 idle), first beat scan with stats collect. Update the wiki's version pages on each release.
+
 2026-11-18 (Mark, in chat): wiki repo now exists (first Home page saved; ls-remote shows master), so write the wiki with wikiwright. Mark said "Don't ask me": decide the everscout beat outline and its 4 metrics yourself, flag the choices in the log, and do not put items in front of Mark that the chain can settle.
 
 

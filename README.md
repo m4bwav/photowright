@@ -23,8 +23,9 @@ Every edit is a step in a recipe that `phw.py run` replays, and every result say
 ```
 claude plugin marketplace add m4bwav/photowright
 claude plugin install photowright@photowright
-python scripts/phw.py doctor
 ```
+
+Then check the tools from a clone with `python scripts/phw.py doctor`; in an installed plugin the script is under the plugin root (`${CLAUDE_PLUGIN_ROOT}/scripts/phw.py doctor`).
 
 ## Not for
 

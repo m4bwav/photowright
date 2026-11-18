@@ -1,0 +1,241 @@
+=== --version
+0.25.0
+[exit 0]
+=== inspect dark-photo.jpg
+command: inspect
+file: dark-photo.jpg
+bytes: 3186
+rung: 1
+tool: ['Pillow']
+format: JPEG
+mode: RGB
+stored_size: [320, 240]
+exif_orientation: 1
+size: [320, 240]
+bit_depth: 8
+alpha: False
+icc_profile: None
+icc_note: none embedded: treated as sRGB
+metadata_keys: ['jfif', 'jfif_density', 'jfif_unit', 'jfif_version']
+exif_tags: []
+gps: False
+xmp: False
+layers: None
+c2pa:
+  present: False
+[exit 0]
+=== adjust dark-photo.jpg --exposure 1 -o bright.jpg --recipe edit.json
+command: adjust
+input: dark-photo.jpg
+output: bright.jpg
+rung: 1
+tool: ['NumPy linear light', 'Pillow']
+used: [{'op': 'load', 'rung': 1, 'tool': 'Pillow'}, {'op': 'adjust.exposure', 'rung': 1, 'tool': 'NumPy linear light'}, {'op': 'save', 'rung': 1, 'tool': 'Pillow'}]
+steps: [{'op': 'adjust.exposure', 'params': {'stops': 1.0}}]
+notes: ['no ICC profile: treated as sRGB (R2)']
+[exit 0]
+=== crop bright.jpg --aspect 1:1 -o square.jpg --recipe edit.json
+command: crop
+input: bright.jpg
+output: square.jpg
+rung: 1
+tool: ['NumPy slice', 'Pillow']
+used: [{'op': 'load', 'rung': 1, 'tool': 'Pillow'}, {'op': 'crop', 'rung': 1, 'tool': 'NumPy slice'}, {'op': 'save', 'rung': 1, 'tool': 'Pillow'}]
+steps: [{'op': 'crop', 'params': {'box': [40, 0, 280, 240]}}]
+notes: ['no ICC profile: treated as sRGB (R2)']
+[exit 0]
+=== adjust dark-photo.jpg --exposure 1 -o bright.jpg
+command: adjust
+input: dark-photo.jpg
+output: bright-001.jpg
+rung: 1
+tool: ['NumPy linear light', 'Pillow']
+used: [{'op': 'load', 'rung': 1, 'tool': 'Pillow'}, {'op': 'adjust.exposure', 'rung': 1, 'tool': 'NumPy linear light'}, {'op': 'save', 'rung': 1, 'tool': 'Pillow'}]
+steps: [{'op': 'adjust.exposure', 'params': {'stops': 1.0}}]
+notes: ['no ICC profile: treated as sRGB (R2)']
+[exit 0]
+=== run edit.json -o replay.jpg
+command: run
+recipe: edit.json
+output: replay.jpg
+steps: 2
+replay: first run
+rung: 1
+tool: ['NumPy linear light', 'NumPy slice', 'Pillow']
+notes: ['no ICC profile: treated as sRGB (R2)']
+[exit 0]
+=== diff square.jpg replay.jpg
+command: diff
+a: square.jpg
+b: replay.jpg
+heatmap: square-diff.png
+identical: False
+max: 0.0078
+mean: 1e-05
+psnr_db: 75.04
+changed_share: 5e-05
+changed_pixels: 3
+threshold: 0.0078
+bbox: [144, 59, 150, 63]
+regions: 3
+mean_per_channel:
+  R: 1e-05
+  G: 1e-05
+  B: 1e-05
+  A: 0.0
+rung: 1
+tool: ['NumPy']
+heatmap_key: dim grey = unchanged; black-red-yellow-white = larger change (scaled so the largest change is white unless --gain)
+[exit 0]
+=== cutout logo.png --method key -o logo-cut.png
+command: cutout
+input: logo.png
+output: logo-cut.png
+rung: 2
+tool: ['Pillow', 'colour key + border flood', 'scipy.ndimage.label']
+used: [{'op': 'load', 'rung': 1, 'tool': 'Pillow'}, {'op': 'flood', 'rung': 2, 'tool': 'scipy.ndimage.label'}, {'op': 'cutout', 'rung': 1, 'tool': 'colour key + border flood'}, {'op': 'save', 'rung': 1, 'tool': 'Pillow'}]
+steps: [{'op': 'cutout', 'params': {'method': 'key'}}]
+notes: ['no ICC profile: treated as sRGB (R2)', 'cutout method: key; colour channels unchanged, only alpha set']
+[exit 0]
+=== trace logo.png --kind logo -o logo.svg
+command: trace
+input: logo.png
+output: logo.svg
+kind: logo
+rung: 2
+tool: ['VTracer (MIT) in a subprocess']
+used: [{'op': 'trace', 'rung': 2, 'tool': 'VTracer (MIT) in a subprocess'}]
+info:
+seconds: 0.064
+overlap: 0.9978
+counts:
+  paths: 3
+  subpaths: 3
+  nodes: 18
+  colours: 3
+structure:
+  open_paths: 0
+  stray_points: 0
+  self_intersections: 0
+  first_crossings: []
+bar: 0.97
+budget:
+  nodes: 112
+  paths: 12
+  colours: 12
+fails: []
+pass: True
+notes: []
+[exit 0]
+=== vcheck logo.svg --source logo.png --kind logo
+counts:
+  paths: 3
+  subpaths: 3
+  nodes: 18
+  colours: 3
+structure:
+  open_paths: 0
+  stray_points: 0
+  self_intersections: 0
+  first_crossings: []
+notes: ['aliased source (3 colours): overlap measured on the render snapped to those colours']
+overlap: 0.9978
+supersampling: 16
+overlap_antialiased: 0.9934
+overlap_bar: 0.97
+budget:
+  nodes: 112
+  paths: 12
+  colours: 12
+fails: []
+pass: True
+seconds: 0.658
+command: vcheck
+input: logo.svg
+source: logo.png
+kind: logo
+rung: 1
+tool: ['own render-back (winding fill, 16x supersampling)']
+[exit 0]
+=== export logo.svg --format dxf --units mm --drop ffffff -o logo.dxf
+command: export
+input: logo.svg
+output: logo.dxf
+format: dxf
+counts:
+  paths: 2
+  subpaths: 2
+  nodes: 13
+  colours: 2
+rung: 1
+tool: ['own DXF writer']
+notes: ['DXF R12: closed POLYLINE entities only, curves flattened to 0.1 px; stacked colours overlap, so a cutter cuts every layer in full']
+dropped_shapes: 1
+entities: ['EOF', 'POLYLINE', 'SEQEND', 'VERTEX']
+[exit 0]
+=== open poster.psd
+command: open
+input: poster.psd
+size: [256, 256]
+layers: [{'name': 'photo', 'kind': 'pixel', 'blend': 'normal', 'opacity': 1.0, 'visible': True, 'clip': False, 'mask': None, 'rect': [0, 0, 320, 240]}, {'name': 'logo', 'kind': 'pixel', 'blend': 'multiply', 'opacity': 0.8, 'visible': True, 'clip': False, 'mask': None, 'rect': [0, 0, 256, 256]}]
+count: 2
+rung: 2
+tool: ['psd-tools']
+used: [{'op': 'open psd', 'rung': 2, 'tool': 'psd-tools'}]
+notes: []
+[exit 0]
+=== sheet dark-photo.jpg bright.jpg --labels before,after -o sheet.png
+command: sheet
+inputs: ['dark-photo.jpg', 'bright.jpg']
+output: sheet.png
+size: [676, 294]
+labels: ['before', 'after']
+rung: 1
+tool: ['Pillow']
+[exit 0]
+=== batch edit.json photos
+command: batch
+recipe: edit.json
+folder: photos
+output_folder: photos-edit
+mode: dry run
+files: 2
+steps: ['adjust.exposure', 'crop']
+skipped: []
+failed: []
+would_write: [{'source': 'a.jpg', 'output': 'a.jpg'}, {'source': 'b.jpg', 'output': 'b.jpg'}]
+hint: dry run: nothing written; add --apply to run
+[exit 0]
+=== batch edit.json photos --apply
+command: batch
+recipe: edit.json
+folder: photos
+output_folder: photos-edit
+mode: apply
+files: 2
+steps: ['adjust.exposure', 'crop']
+skipped: []
+failed: []
+written: [{'source': 'a.jpg', 'output': 'a.jpg', 'rung': 1, 'tool': ['NumPy linear light', 'NumPy slice', 'Pillow'], 'seconds': 0.041}, {'source': 'b.jpg', 'output': 'b.jpg', 'rung': 1, 'tool': ['NumPy linear light', 'NumPy slice', 'Pillow'], 'seconds': 0.005}]
+rung: 1
+[exit 0]
+=== --rung-max 1 cutout logo.png -o rung1.png
+command: cutout
+input: logo.png
+output: rung1.png
+rung: 1
+tool: ['NumPy iterative 4-neighbour fill', 'Pillow', 'colour key + border flood']
+used: [{'op': 'load', 'rung': 1, 'tool': 'Pillow'}, {'op': 'flood', 'rung': 1, 'tool': 'NumPy iterative 4-neighbour fill'}, {'op': 'cutout', 'rung': 1, 'tool': 'colour key + border flood'}, {'op': 'save', 'rung': 1, 'tool': 'Pillow'}]
+steps: [{'op': 'cutout', 'params': {'method': 'auto'}}]
+notes: ['no ICC profile: treated as sRGB (R2)', 'cutout method: key; colour channels unchanged, only alpha set']
+[exit 0]
+=== explain screen
+command: explain
+term: screen
+rung: 1
+tool: ['built-in glossary']
+kind: blend mode
+formula: B = cb + cs - cb x cs (always lighter)
+text: W3C Compositing Level 1 formula on encoded straight colour (R7, R14); cb backdrop, cs source.
+source: https://www.w3.org/TR/compositing-1/
+[exit 0]

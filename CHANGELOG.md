@@ -6,6 +6,12 @@ Entry shape: `### C-YYYYMMDD-n · date · one-line summary`, then `because:`, `f
 
 ## Unreleased
 
+Nothing yet.
+
+## Released
+
+Every entry below is in a tagged release; the version is in each heading.
+
 ### C-20261118-21 · 2026-11-18 · 0.25.0: decompose an image into RGBA layers (Qwen-Image-Layered, rung 3)
 because: references/comfyui-nodes.md listed Qwen-Image-Layered (core, Apache-2.0) as installed on 8199 but not wired.
 files: scripts/phw/comfy.py, scripts/phw/layered.py, scripts/phw/core.py, tests/test_phw22.py, skills/photowright/SKILL.md, references/comfyui-nodes.md, .claude-plugin/plugin.json
