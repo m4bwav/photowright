@@ -128,3 +128,4 @@
 - 2026-11-18 (session 53): Moebius vs lama bake-off run (weights pre-downloaded, no crash). lama wins all 3 cases on seam ratio and speed; Moebius dropped, not wired. Notes: ai-docs/notes/bakeoff/moebius-2026-11-18.md.
 - 2026-11-18 session 54: idle stop; nothing changed since session 53 (Moebius dropped, lama default). No work open.
 - 2026-11-18 session 55: idle stop, nothing open; wrap-up found nothing to harvest.
+- 2026-11-20 (harvest arXiv:2611.06741 TailSteer, adopt-partly): new `drift` subcommand in 0.26.0 scores an edit chain against round 0 (dE76/dE00, L/a/b, chroma, sharpness, PSNR, SSIM, masks, --global, --prev, restart flag at --limit-de 4). Tests tests/test_phw24.py (synthetic chain). On the paper example it trips at base turn 3 (4.53) while TailSteer stays under 4: ai-docs/notes/bakeoff/drift-tailsteer-2026-11-20.md.

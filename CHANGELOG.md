@@ -12,6 +12,11 @@ Nothing yet.
 
 Every entry below is in a tagged release; the version is in each heading.
 
+### C-20261120-1 · 2026-11-20 · 0.26.0: drift meter for multi-round edits (arXiv:2611.06741, TailSteer)
+because: technique harvest of arXiv:2611.06741 (TailSteer: Trajectory-Tail Steering for Drift-Resistant Multi-turn Image Editing), verdict adopt-partly. The paper finds multi-turn edits drift through late-step colour and detail error that compounds with each re-encode; nothing in photowright scored a chain of rounds against round 0.
+files: scripts/phw/batchops.py (drift, drift_pair, de2000), tests/test_phw24.py, skills/photowright/SKILL.md, scripts/phw/core.py, .claude-plugin/plugin.json, ai-docs/notes/bakeoff/drift-tailsteer-2026-11-20.md
+New `drift ROUND0 ROUND1 ... [--prev] [--mask M]... [--global N[,M]] [--limit-de 4] [--size 1024] [--json]`: per round, median CIE76 and CIEDE2000 dE, share over dE 10, mean L/a/b shift, chroma and Laplacian sharpness ratios, PSNR and block SSIM against round 0 (the previous round with --prev, the latest --global round after one), outside the edit masks only when given; flags "restart from the original or composite back" past the limit. Written fresh from the paper's description (method, not code). On the paper's released example chain it trips at base turn 3 (dE 4.53, b* +2.69) while the TailSteer chain stays under 4 until its intended global change at turn 8.
+
 ### C-20261118-23 · 2026-11-18 · 0.25.2: SVG lengths in percent; lineart-trace bake-off
 because: the centreline bake-off against lineart-trace 0.2.0 (ai-docs/notes/bakeoff/lineart-trace-2026-11-18.md) crashed `vcheck` on its `<rect width="100%" height="100%">` background.
 files: scripts/phw/vector.py (_geom), tests/test_phw23.py, scripts/phw/core.py, .claude-plugin/plugin.json
