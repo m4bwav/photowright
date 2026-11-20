@@ -1,5 +1,7 @@
 # HANDOFF: photowright
 
+2026-11-20 (technique harvest, not a chain session): 0.27.0 adds `phw camraw SRC --match REF [--amount A] [--sliders ...]`, Camera Raw sliders fitted to a reference look from arXiv:2610.36896 (notes: ai-docs/notes/bakeoff/camraw-match-2026-11-20.md). Nothing waits on Mark.
+
 2026-11-20 (technique harvest, not a chain session): 0.26.0 adds `phw drift ROUND0 ROUND1 ... [--mask] [--global] [--prev] [--limit-de 4]`, the multi-round edit drift meter from arXiv:2611.06741 (notes: ai-docs/notes/bakeoff/drift-tailsteer-2026-11-20.md). comfyui-gen gained the matching rule (run drift after each Klein edit round). Nothing waits on Mark.
 
 2026-11-18 (session 55): idle stop again; no new commits, answers or goals since session 53. The chain should not be re-run until Mark gives a new goal.
