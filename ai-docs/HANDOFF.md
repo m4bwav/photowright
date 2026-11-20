@@ -1,5 +1,7 @@
 # HANDOFF: photowright
 
+2026-11-20 (technique harvest, not a chain session): 0.26.0 adds `phw drift ROUND0 ROUND1 ... [--mask] [--global] [--prev] [--limit-de 4]`, the multi-round edit drift meter from arXiv:2611.06741 (notes: ai-docs/notes/bakeoff/drift-tailsteer-2026-11-20.md). comfyui-gen gained the matching rule (run drift after each Klein edit round). Nothing waits on Mark.
+
 2026-11-18 (session 55): idle stop again; no new commits, answers or goals since session 53. The chain should not be re-run until Mark gives a new goal.
 
 2026-11-18 (session 54): idle stop. No commits since session 53, no new answers; nothing agent-only is open and nothing waits on Mark. The chain stays stopped until a new goal arrives.

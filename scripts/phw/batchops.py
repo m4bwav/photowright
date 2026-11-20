@@ -8,6 +8,10 @@ batch  a recipe's steps over a folder. Dry run by default (lists what would be w
 sheet  images side by side in a grid with labels (before/after, variations), on a checkerboard for alpha.
 diff   what changed between two images and where: heatmap PNG, stats (max, mean, PSNR, changed share,
        bounding box, number of changed regions).
+drift  a chain of edit rounds scored against round 0 (or the previous round): median colour difference
+       (CIE76 and CIEDE2000 in Lab), mean L/a/b shift, chroma and sharpness ratios, PSNR, SSIM, optionally
+       outside the edit masks only, with a restart flag past a limit. After arXiv:2611.06741 (TailSteer):
+       multi-turn edits drift through late-step colour and detail error that compounds with each re-encode.
 """
 import hashlib
 import json
@@ -241,6 +245,172 @@ def cmd_diff(a):
                                               "(scaled so the largest change is white unless --gain)"}
 
 
+# ---------------------------------------------------------------- drift over an edit chain
+def de2000(lab1, lab2):
+    """CIEDE2000 colour difference, elementwise (Sharma, Wu and Dalal 2005 formulation)."""
+    L1, a1, b1 = lab1[..., 0], lab1[..., 1], lab1[..., 2]
+    L2, a2, b2 = lab2[..., 0], lab2[..., 1], lab2[..., 2]
+    cbar7 = ((np.hypot(a1, b1) + np.hypot(a2, b2)) / 2) ** 7
+    g = 0.5 * (1 - np.sqrt(cbar7 / (cbar7 + 25.0 ** 7)))
+    a1p, a2p = (1 + g) * a1, (1 + g) * a2
+    c1, c2 = np.hypot(a1p, b1), np.hypot(a2p, b2)
+    h1 = np.degrees(np.arctan2(b1, a1p)) % 360
+    h2 = np.degrees(np.arctan2(b2, a2p)) % 360
+    cc = c1 * c2
+    zero = cc == 0
+    dh = h2 - h1
+    dh = np.where(dh > 180, dh - 360, np.where(dh < -180, dh + 360, dh))
+    dh = np.where(zero, 0.0, dh)
+    dH = 2 * np.sqrt(cc) * np.sin(np.radians(dh / 2))
+    lbar, cbar = (L1 + L2) / 2, (c1 + c2) / 2
+    hs = h1 + h2
+    hbar = np.where(np.abs(h1 - h2) <= 180, hs / 2, np.where(hs < 360, (hs + 360) / 2, (hs - 360) / 2))
+    hbar = np.where(zero, hs, hbar)
+    t = (1 - 0.17 * np.cos(np.radians(hbar - 30)) + 0.24 * np.cos(np.radians(2 * hbar))
+         + 0.32 * np.cos(np.radians(3 * hbar + 6)) - 0.20 * np.cos(np.radians(4 * hbar - 63)))
+    dtheta = 30 * np.exp(-(((hbar - 275) / 25) ** 2))
+    cb7 = cbar ** 7
+    rc = 2 * np.sqrt(cb7 / (cb7 + 25.0 ** 7))
+    sl = 1 + 0.015 * (lbar - 50) ** 2 / np.sqrt(20 + (lbar - 50) ** 2)
+    sc = 1 + 0.045 * cbar
+    sh = 1 + 0.015 * cbar * t
+    rt = -np.sin(np.radians(2 * dtheta)) * rc
+    tl, tc, th = (L2 - L1) / sl, (c2 - c1) / sc, dH / sh
+    return np.sqrt(np.maximum(tl ** 2 + tc ** 2 + th ** 2 + rt * tc * th, 0))
+
+
+def _drift_load(path, shape=None, size=0):
+    """RGB float64 0..1 with EXIF orientation; resized to `shape` (H, W), or to `size` px on the long edge."""
+    from PIL import ImageOps
+    with Image.open(path) as im:
+        orig = im.size
+        im = ImageOps.exif_transpose(im).convert("RGB")
+        if shape is not None:
+            if im.size != (shape[1], shape[0]):
+                im = im.resize((shape[1], shape[0]), Image.LANCZOS)
+        elif size and max(im.size) > size:
+            s = size / max(im.size)
+            im = im.resize((max(1, round(im.width * s)), max(1, round(im.height * s))), Image.LANCZOS)
+        return np.asarray(im, np.float64) / 255.0, orig
+
+
+def _lap(grey):
+    return (grey[:-2, 1:-1] + grey[2:, 1:-1] + grey[1:-1, :-2] + grey[1:-1, 2:]) - 4 * grey[1:-1, 1:-1]
+
+
+def _block_ssim(ga, gb, keep, n=8):
+    """Mean SSIM over n x n blocks lying wholly in `keep` (box window, grey 0..1)."""
+    h, w = (ga.shape[0] // n) * n, (ga.shape[1] // n) * n
+    if h == 0 or w == 0:
+        return None
+
+    def blocks(x):
+        return x[:h, :w].reshape(h // n, n, w // n, n).swapaxes(1, 2).reshape(-1, n * n)
+    A, B, K = blocks(ga), blocks(gb), blocks(keep).all(1)
+    if not K.any():
+        return None
+    A, B = A[K], B[K]
+    ma, mb = A.mean(1), B.mean(1)
+    va, vb = A.var(1), B.var(1)
+    cov = ((A - ma[:, None]) * (B - mb[:, None])).mean(1)
+    c1, c2 = 0.01 ** 2, 0.03 ** 2
+    return float((((2 * ma * mb + c1) * (2 * cov + c2)) / ((ma ** 2 + mb ** 2 + c1) * (va + vb + c2))).mean())
+
+
+def drift_pair(ref, img, keep):
+    """Drift metrics of `img` against `ref` (RGB 0..1) over the pixels where `keep` is True."""
+    from .masks import rgb_to_lab
+    la, lb = rgb_to_lab(ref), rgb_to_lab(img)
+    d76 = np.linalg.norm(lb - la, axis=-1)[keep]
+    d00 = de2000(la[keep], lb[keep])
+    shift = (lb - la)[keep].mean(0)
+    ca = np.hypot(la[..., 1], la[..., 2])[keep].mean()
+    cb = np.hypot(lb[..., 1], lb[..., 2])[keep].mean()
+    ga, gb = la[..., 0] / 100, lb[..., 0] / 100
+    inner = keep[1:-1, 1:-1] & keep[:-2, 1:-1] & keep[2:, 1:-1] & keep[1:-1, :-2] & keep[1:-1, 2:]
+    sa = float(_lap(ga)[inner].var()) if inner.any() else 0.0
+    sb = float(_lap(gb)[inner].var()) if inner.any() else 0.0
+    mse = float(((img - ref) ** 2)[keep].mean())
+    ss = _block_ssim(ga, gb, keep)
+    return {"dE76_median": round(float(np.median(d76)), 2), "dE00_median": round(float(np.median(d00)), 2),
+            "dE76_p90": round(float(np.percentile(d76, 90)), 2), "over10_share": round(float((d76 > 10).mean()), 4),
+            "dL": round(float(shift[0]), 2), "da": round(float(shift[1]), 2), "db": round(float(shift[2]), 2),
+            "chroma_ratio": round(float(cb / ca), 3) if ca > 1e-9 else None,
+            "sharpness_ratio": round(sb / sa, 3) if sa > 1e-12 else None,
+            "psnr_db": None if mse == 0 else round(float(10 * np.log10(1 / mse)), 2),
+            "ssim": None if ss is None else round(ss, 4)}
+
+
+def drift(paths, prev=False, masks=(), global_rounds=(), limit_de=4.0, size=1024):
+    """Score rounds 1..N of an edit chain against round 0 (or the previous round, or the last global round)."""
+    if len(paths) < 2:
+        raise SystemExit("drift: give round 0 and at least one later round")
+    notes = []
+    r0, size0 = _drift_load(paths[0], size=size)
+    shape = r0.shape[:2]
+    imgs = [r0]
+    for p in paths[1:]:
+        im, sz = _drift_load(p, shape=shape)
+        if sz != size0:
+            notes.append(f"{Path(p).name} is {sz[0]}x{sz[1]}, round 0 is {size0[0]}x{size0[1]}: resized to compare")
+        imgs.append(im)
+    edit = np.zeros(shape, bool)
+    for m in masks:
+        with Image.open(m) as mi:
+            mm = mi.convert("L").resize((shape[1], shape[0]), Image.NEAREST)
+        edit |= np.asarray(mm) >= 128
+    keep = ~edit
+    if keep.mean() < 0.01:
+        raise SystemExit("drift: the masks cover the whole image; nothing is left to score")
+    glob = sorted({int(g) for g in global_rounds})
+    bad = [g for g in glob if not 1 <= g < len(paths)]
+    if bad:
+        raise SystemExit(f"drift: --global rounds {bad} are outside 1..{len(paths) - 1}")
+    rows = []
+    for k in range(1, len(imgs)):
+        ref = k - 1 if prev else max([g for g in glob if g < k], default=0)
+        row = {"round": k, "file": str(paths[k]), "against": ref, "global": k in glob}
+        row.update(drift_pair(imgs[ref], imgs[k], keep))
+        row["over_limit"] = (not row["global"]) and row["dE76_median"] > limit_de
+        rows.append(row)
+    over = [r["round"] for r in rows if r["over_limit"]]
+    advice = ("within the limit: keep editing from the latest round" if not over else
+              f"round {over[0]} passed median dE {limit_de:g} outside the edits: restart from the original "
+              "(round 0) or composite the untouched pixels back from round 0 through the edit mask")
+    return {"rounds": rows, "limit_de": limit_de, "first_over_limit": over[0] if over else None,
+            "over_limit": over, "scored_share": round(float(keep.mean()), 4),
+            "compared_at": f"{shape[1]}x{shape[0]}", "advice": advice, "notes": notes}
+
+
+def _fmt(v, spec):
+    return "-".rjust(len(format(0.0, spec))) if v is None else format(v, spec)
+
+
+def drift_table(r):
+    lines = ["round vs  dE76  dE00  >10%     dL     da     db chroma sharp  PSNR   SSIM"]
+    for x in r["rounds"]:
+        lines.append(f"{x['round']:>5} {x['against']:>2} {x['dE76_median']:5.2f} {x['dE00_median']:5.2f} "
+                     f"{x['over10_share'] * 100:5.1f} {x['dL']:+6.2f} {x['da']:+6.2f} {x['db']:+6.2f} "
+                     f"{_fmt(x['chroma_ratio'], '6.3f')} {_fmt(x['sharpness_ratio'], '5.3f')} "
+                     f"{_fmt(x['psnr_db'], '5.2f')} {_fmt(x['ssim'], '6.4f')}"
+                     + (" global" if x["global"] else "") + (" OVER" if x["over_limit"] else ""))
+    return "\n".join(lines)
+
+
+def cmd_drift(a):
+    glob = [g for s in (a.global_rounds or []) for g in str(s).split(",") if g.strip()]
+    r = drift(a.rounds, a.prev, a.mask or [], glob, a.limit_de, a.size)
+    if getattr(a, "json_sub", False):
+        a.json = True
+    if not a.json:
+        out = {"command": "drift", "table": "\n" + drift_table(r), "first_over_limit": r["first_over_limit"],
+               "advice": r["advice"], "scored_share": r["scored_share"], "compared_at": r["compared_at"]}
+        if r["notes"]:
+            out["notes"] = "; ".join(r["notes"])
+        return out
+    return {"command": "drift", **r, "rung": 1, "tool": ["NumPy"], "source": "arXiv:2611.06741 (TailSteer)"}
+
+
 def add_commands(sub, edit):
     p = sub.add_parser("batch", help="a recipe over a folder: dry run unless --apply; never overwrites")
     p.add_argument("recipe_file")
@@ -265,7 +435,19 @@ def add_commands(sub, edit):
     p.add_argument("--threshold", type=float, default=2.0, help="change counted above this (0-255 scale)")
     p.add_argument("--gain", type=float, help="heatmap gain (default: largest change = white)")
     p.set_defaults(fn=cmd_diff)
+    p = sub.add_parser("drift", help="score an edit chain against round 0: colour, sharpness, PSNR, SSIM, restart flag")
+    p.add_argument("rounds", nargs="+", help="ROUND0 ROUND1 ... in order")
+    p.add_argument("--prev", action="store_true", help="score each round against the previous one instead")
+    p.add_argument("--mask", action="append", help="edit mask (white = intended change), scored outside only; repeatable")
+    p.add_argument("--global", dest="global_rounds", action="append",
+                   help="round(s) with an intended global change (relight, outpaint), e.g. 3 or 3,5: "
+                        "later rounds are scored against the latest of them")
+    p.add_argument("--limit-de", type=float, default=4.0, help="median CIE76 dE outside the edits that trips the "
+                                                                "restart flag (default 4)")
+    p.add_argument("--size", type=int, default=1024, help="compare at this long edge in px (0 = full size)")
+    p.add_argument("--json", dest="json_sub", action="store_true", help="print JSON")
+    p.set_defaults(fn=cmd_drift)
 
 
 core.EXTRA_COMMANDS.append(add_commands)
-core.DOCTOR_GROUPS.append(lambda: {"batch, sheet, diff": (1, "own (Pillow + NumPy)")})
+core.DOCTOR_GROUPS.append(lambda: {"batch, sheet, diff, drift": (1, "own (Pillow + NumPy)")})

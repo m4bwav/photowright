@@ -13,7 +13,7 @@ photowright is one skill for AI coding agents plus a command-line tool, `phw.py`
 - **Retouch**: spot heal, clone stamp, object removal and content-aware fill, red eye, dust and scratches, old-photo pass.
 - **Transform and merge**: mesh warp, perspective correction, upscale, exposure fusion and focus stacks, panorama stitch.
 - **Layers**: composite a layer recipe with blend modes, masks, clipping, text, shapes and shadows; read and write PSD and ORA.
-- **Batch**: one recipe over a folder, a dry run until `--apply`, never overwriting; before/after sheets and diffs.
+- **Batch**: one recipe over a folder, a dry run until `--apply`, never overwriting; before/after sheets, diffs, and drift across several edit rounds (`drift`).
 - **Trace to vectors**: logos, icons, line art, photos, pixel art and centrelines to SVG, checked by rendering the SVG back against the source; simplify; export SVG, PDF, EPS or DXF (millimetres for laser and vinyl cutters).
 
 Every edit is a step in a recipe that `phw.py run` replays, and every result says which tool did each step and at which rung: own code (1), free tools (2), local models (3).
