@@ -8,7 +8,7 @@ photowright is one skill for AI coding agents plus a command-line tool, `phw.py`
 
 ## What it does
 
-- **Adjust**: levels, curves, exposure, white balance, hue and saturation, LUTs, black and white, crop, straighten, resize in linear light, sharpen, denoise, format, bit depth and colour profile.
+- **Adjust**: levels, curves, exposure, white balance, hue and saturation, LUTs, black and white, Camera Raw sliders (fitted to a reference photo's look with `camraw --match`), crop, straighten, resize in linear light, sharpen, denoise, format, bit depth and colour profile.
 - **Select and cut out**: colour, luma, edge and flood selections, mask editing, background removal (GrabCut or colour key).
 - **Retouch**: spot heal, clone stamp, object removal and content-aware fill, red eye, dust and scratches, old-photo pass.
 - **Transform and merge**: mesh warp, perspective correction, upscale, exposure fusion and focus stacks, panorama stitch.
